@@ -2,420 +2,97 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type MeetingHealth = "well" | "okay" | "poor";
-type ScenarioKey = "paradox" | "momentum" | "recovery";
+type Screen = "home" | "nearby" | "pending" | "active" | "settings";
+type Snack = "hidden" | "active" | "paused" | "error";
 
-type TranscriptEvent = {
-  speaker: "You" | "Maya" | "Devon";
-  parts: Array<{ text: string; highlight?: boolean }>;
-  coach: string;
-  expertise?: string;
-};
-
-const events: TranscriptEvent[] = [
-  {
-    speaker: "Maya",
-    parts: [
-      {
-        text: "Before we add another initiative, I need a sharper reason to prioritize this now.",
-      },
-    ],
-    coach: "Listen for the real objection before you make the case.",
-  },
-  {
-    speaker: "You",
-    parts: [
-      { text: "The " },
-      { text: "adoption curve", highlight: true },
-      { text: " is already moving; a " },
-      { text: "focused pilot", highlight: true },
-      { text: " lets us learn before the market sets the pace." },
-    ],
-    coach: "Strong framing. You connected urgency to a bounded action.",
-    expertise: "Market strategy",
-  },
-  {
-    speaker: "Devon",
-    parts: [
-      {
-        text: "I understand the signal, but we are already overcommitted this quarter.",
-      },
-    ],
-    coach: "Your point landed. The room is still protecting capacity.",
-  },
-  {
-    speaker: "You",
-    parts: [
-      { text: "We can isolate the " },
-      { text: "four-week pilot", highlight: true },
-      { text: " to two teams, protect the roadmap, and name " },
-      { text: "Product Ops", highlight: true },
-      { text: " as the single owner." },
-    ],
-    coach: "Clear and specific. Do not mistake clarity for agreement.",
-    expertise: "Operating model",
-  },
-  {
-    speaker: "Maya",
-    parts: [
-      {
-        text: "The ownership is better. I am still not convinced the upside offsets the distraction.",
-      },
-    ],
-    coach: "Meeting health is falling even as your delivery stays strong.",
-  },
-  {
-    speaker: "You",
-    parts: [
-      { text: "Success is a " },
-      { text: "15% faster handoff", highlight: true },
-      { text: ", measured weekly. If we miss it at " },
-      { text: "week four", highlight: true },
-      { text: ", we stop." },
-    ],
-    coach: "All four points are covered. Ask what evidence would change the decision.",
-    expertise: "Measurement",
-  },
-  {
-    speaker: "Devon",
-    parts: [
-      { text: "Your plan is clear. " },
-      { text: "I’m not ready to move the team yet.", highlight: true },
-    ],
-    coach: "Strong meeting performance. Poor meeting outcome. Surface the blocker.",
-  },
+const steps: Array<{ id: Screen; label: string }> = [
+  { id: "home", label: "Home" },
+  { id: "nearby", label: "Find nearby" },
+  { id: "pending", label: "Watch approval" },
+  { id: "active", label: "Active sync" },
+  { id: "settings", label: "Settings" },
 ];
 
-const points = [
-  { short: "Scope", label: "Scope a four-week pilot", hitAt: 3 },
-  { short: "Signal", label: "Prove the adoption signal", hitAt: 1 },
-  { short: "Owner", label: "Name an owner + guardrails", hitAt: 3 },
-  { short: "Metric", label: "Set a 15% success metric", hitAt: 5 },
+const initialCategories = [
+  { id: "contacts", name: "Contacts", detail: "2 of 5 groups", enabled: true, color: "#c2803a" },
+  { id: "calendar", name: "Calendar & Reminders", detail: "3 of 5 selected", enabled: true, color: "#c25a48" },
+  { id: "photos", name: "Photos", detail: "2 of 5 albums", enabled: true, color: "#c99326" },
+  { id: "files", name: "Files & iCloud Drive", detail: "2 of 4 folders", enabled: true, color: "#7f9a3e" },
+  { id: "health", name: "Health", detail: "3 of 5 categories", enabled: true, color: "#c2485a" },
+  { id: "wallet", name: "Wallet Passes", detail: "Off", enabled: false, color: "#5a6478" },
 ];
-
-const scenarios: Record<
-  ScenarioKey,
-  {
-    label: string;
-    eyebrow: string;
-    description: string;
-    health: MeetingHealth[];
-    clarity: number[];
-  }
-> = {
-  paradox: {
-    label: "Strong / Tense",
-    eyebrow: "THE CORE PARADOX",
-    description: "You land every point. The room still resists.",
-    health: ["okay", "okay", "poor", "poor", "poor", "poor", "poor"],
-    clarity: [68, 78, 81, 86, 89, 94, 94],
-  },
-  momentum: {
-    label: "Strong / Aligned",
-    eyebrow: "MOMENTUM",
-    description: "Clear delivery and room alignment rise together.",
-    health: ["okay", "okay", "okay", "well", "well", "well", "well"],
-    clarity: [68, 78, 81, 86, 89, 94, 94],
-  },
-  recovery: {
-    label: "Recover the room",
-    eyebrow: "RECOVERY",
-    description: "The room starts cold, then the evidence earns trust.",
-    health: ["poor", "poor", "poor", "okay", "okay", "well", "well"],
-    clarity: [54, 66, 69, 76, 82, 88, 91],
-  },
-};
-
-const healthCopy: Record<
-  MeetingHealth,
-  { label: string; short: string; value: string }
-> = {
-  well: { label: "Going well", short: "Aligned", value: "82" },
-  okay: { label: "Going okay", short: "Mixed", value: "57" },
-  poor: { label: "Going poorly", short: "Resistant", value: "28" },
-};
-
-function formatTime(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return minutes + ":" + String(seconds).padStart(2, "0");
-}
 
 export default function Home() {
-  const [scenarioKey, setScenarioKey] = useState<ScenarioKey>("paradox");
-  const [step, setStep] = useState(0);
-  const [running, setRunning] = useState(true);
-  const [elapsed, setElapsed] = useState(18 * 60 + 12);
+  const [screen, setScreen] = useState<Screen>("home");
+  const [snack, setSnack] = useState<Snack>("hidden");
+  const [approved, setApproved] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [progress, setProgress] = useState(18);
+  const [categories, setCategories] = useState(initialCategories);
 
-  const scenario = scenarios[scenarioKey];
-  const event = events[step];
-  const health = scenario.health[step];
-  const clarity = scenario.clarity[step];
-  const hitCount = points.filter((point) => step >= point.hitAt).length;
-  const isFinished = step === events.length - 1;
-
-  const speakerStrength = useMemo(() => {
-    if (clarity >= 88) return "Strong";
-    if (clarity >= 72) return "Steady";
-    return "Building";
-  }, [clarity]);
+  const shared = useMemo(() => categories.filter((item) => item.enabled), [categories]);
+  const summary = shared.length > 2 ? `${shared[0].name}, ${shared[1].name} +${shared.length - 2}` : shared.map((item) => item.name).join(" & ");
 
   useEffect(() => {
-    if (!running) return;
-
-    const timer = window.setInterval(() => {
-      setElapsed((value) => value + 1);
-    }, 1000);
-
+    if (screen !== "active" || paused || progress >= 100) return;
+    const timer = window.setInterval(() => setProgress((value) => Math.min(value + 1, 100)), 500);
     return () => window.clearInterval(timer);
-  }, [running]);
+  }, [screen, paused, progress]);
 
-  useEffect(() => {
-    if (!running) return;
-
-    const timer = window.setTimeout(() => {
-      if (step >= events.length - 1) {
-        setRunning(false);
-        return;
-      }
-      setStep((value) => value + 1);
-    }, 4100);
-
-    return () => window.clearTimeout(timer);
-  }, [running, step, scenarioKey]);
-
-  function selectScenario(key: ScenarioKey) {
-    setScenarioKey(key);
-    setStep(0);
-    setElapsed(18 * 60 + 12);
-    setRunning(true);
+  function beginApproval() {
+    setScreen("pending");
+    setApproved(false);
   }
 
-  function restart() {
-    setStep(0);
-    setElapsed(18 * 60 + 12);
-    setRunning(true);
+  function approve() {
+    setApproved(true);
+    window.setTimeout(() => {
+      setScreen("active");
+      setProgress(18);
+      setPaused(false);
+    }, 900);
   }
 
-  function togglePlayback() {
-    if (isFinished && !running) {
-      restart();
-      return;
-    }
-    setRunning((value) => !value);
+  function stop() {
+    setScreen("home");
+    setSnack("hidden");
+    setApproved(false);
+    setPaused(false);
   }
 
   return (
-    <main className="prototype-shell">
-      <section className="phone-stage" aria-label="Meeting Coach iPhone prototype">
-        <div className="phone-frame">
+    <main className="partner-page">
+      <header className="mac-bar" aria-label="Prototype status bar">
+        <strong>Partner</strong><span>File</span><span>Edit</span>
+        <div className="mac-right">{screen === "active" && <span className="sync-chip"><i />Syncing · Van</span>}<span>Fri 9:41</span></div>
+      </header>
+
+      <section className="workspace">
+        <aside className="control-rail">
+          <div className="brand"><i className="brand-mark" /><div><h1>Partner</h1><p>Proximity data-sharing.<br />Consent on both wrists.</p></div></div>
+          <nav aria-label="Prototype flow"><p className="rail-label">Flow</p>{steps.map((step, index) => <button key={step.id} className={screen === step.id ? "selected" : ""} onClick={() => setScreen(step.id)}><span>{index + 1}</span>{step.label}</button>)}</nav>
+          <div><p className="rail-label">Snack-bar states</p><div className="snack-buttons"><button onClick={() => { setScreen("home"); setSnack("active"); }}>Active</button><button onClick={() => { setScreen("home"); setSnack("paused"); }}>Paused</button><button onClick={() => { setScreen("home"); setSnack("error"); }}>Error</button></div><p className="rail-note">Sets the minimized pill on the Home screen.</p></div>
+          <div className="scope-note"><strong>Honest scope</strong><p>Partner only reads Apple system frameworks you grant. It can’t pull other apps’ accounts like Instagram or Venmo.</p></div>
+        </aside>
+
+        <div className={`phone ${screen === "active" && !paused ? "glowing" : ""}`}>
           <div className="phone-screen">
-            <div className="ambient ambient-one" />
-            <div className="ambient ambient-two" />
+            <div className="island" /><div className="status"><span>9:41</span><span>● ◒</span></div>
 
-            <div className="system-bar" aria-hidden="true">
-              <span>9:41</span>
-              <div className="dynamic-island" />
-              <span className="system-icons">▮▮▮ ◒ ▰</span>
-            </div>
+            {screen === "home" && <section className="screen home-screen"><div><h2>Partner</h2><p>Bring your phones together to sync.</p></div><div className="find-wrap"><button className="find-button" onClick={() => setScreen("nearby")}><span>Tap to<br />begin</span></button><p>Or hold your iPhone near Van’s to start automatically.</p></div><button className="settings-link" onClick={() => setScreen("settings")}><b>B</b><span><strong>Sharing settings</strong><small>{summary || "Nothing shared yet"}</small></span><em>›</em></button>{snack !== "hidden" && <div className={`snack ${snack}`}><i /><span><strong>{snack === "active" ? "Syncing with Van" : snack === "paused" ? "Sync paused" : "Sync interrupted"}</strong><small>{snack === "error" ? "Van moved out of range." : snack === "paused" ? "No data moving." : `${summary} · live`}</small></span>{snack === "active" && <button onClick={() => setSnack("paused")}>Ⅱ</button>}<button onClick={() => setSnack("hidden")}>×</button></div>}</section>}
 
-            <div className="lock-heading" aria-hidden="true">
-              <p>Thursday, July 10</p>
-              <h2>9:41</h2>
-            </div>
+            {screen === "nearby" && <section className="screen centered"><h2>Looking nearby</h2><div className="nearby-phones"><div><i />You</div><span>•••</span><div><i className="van" />Van</div></div><p className="nearby-pill"><i /> Phones are within 2 ft range</p><div className="bottom-actions"><button className="primary" onClick={beginApproval}>Request sync</button><button className="plain" onClick={() => setScreen("home")}>Cancel</button></div></section>}
 
-            <article
-              className={"coach-card health-" + health}
-              aria-label={"Live meeting coach. Meeting is " + healthCopy[health].label}
-            >
-              <header className="card-header">
-                <div className="live-lockup">
-                  <span className="live-dot" />
-                  <span>{isFinished ? "REVIEW READY" : "LIVE COACH"}</span>
-                </div>
-                <span className="meeting-time">{formatTime(elapsed)}</span>
-              </header>
+            {screen === "pending" && <section className="screen pending"><h2>Confirm on your watches</h2><p>Both of you approve on Apple Watch. Sync only starts if you both agree.</p><div className="approval-list"><div><b>B</b><span><strong>You (Brooke)</strong><small>{approved ? "Approved" : "Tap watch"}</small></span></div><div><b>V</b><span><strong>Van</strong><small>{approved ? "Approving…" : "Tap watch"}</small></span></div></div><div className="privacy"><strong>Two people. Two approvals.</strong><p>Nothing moves until consent is clear on both devices.</p></div><button className="plain" onClick={() => setScreen("home")}>Cancel request</button></section>}
 
-              <div className="meeting-title-row">
-                <div>
-                  <p className="overline">Q3 PRODUCT REVIEW</p>
-                  <h1>Meeting Coach</h1>
-                </div>
-                <span className="waveform" aria-label={running ? "Listening" : "Paused"}>
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                </span>
-              </div>
+            {screen === "active" && <section className="screen active-screen"><div className="active-hero"><div className="orbit"><i /></div><h2>{paused ? "Sync paused" : "Syncing with Van"}</h2><p>{paused ? "No data moving" : "Live · secured end-to-end"}</p></div><div className="share-list">{shared.slice(0, 4).map((item) => <div key={item.id}><i style={{ background: item.color }} /><span><strong>{item.name}</strong><small>{item.detail}</small></span><em>{paused ? "Paused" : "Live"}</em></div>)}</div><div className="progress"><div><i style={{ width: `${progress}%` }} /></div><span>{progress >= 100 ? "Sync complete" : paused ? `Paused at ${progress}%` : `Syncing… ${progress}%`}</span></div><div className="active-actions"><button className="secondary" onClick={() => setPaused(!paused)}>{paused ? "Resume" : "Pause"}</button><button className="danger" onClick={stop}>Stop</button></div><button className="plain" onClick={() => { setScreen("home"); setSnack(paused ? "paused" : "active"); }}>Minimize</button></section>}
 
-              <div className="signal-row">
-                <div className="signal signal-meeting">
-                  <span className="signal-kicker">MEETING</span>
-                  <strong>{healthCopy[health].short}</strong>
-                </div>
-                <div className="signal signal-you">
-                  <span className="signal-kicker">YOUR DELIVERY</span>
-                  <strong>{speakerStrength}</strong>
-                </div>
-              </div>
-
-              <section className="transcript-window" aria-live="polite">
-                <div className="transcript-meta">
-                  <span className={event.speaker === "You" ? "speaker-you" : ""}>
-                    {event.speaker}
-                  </span>
-                  <span>{step + 1} / {events.length}</span>
-                </div>
-                <div className="ticker-mask">
-                  <p className="ticker-track" key={scenarioKey + "-" + step}>
-                    {event.parts.map((part, index) =>
-                      part.highlight ? (
-                        <mark key={index}>{part.text}</mark>
-                      ) : (
-                        <span key={index}>{part.text}</span>
-                      ),
-                    )}
-                  </p>
-                </div>
-                {event.expertise ? (
-                  <div className="expertise-chip">
-                    <span>EXPERTISE</span>
-                    {event.expertise}
-                  </div>
-                ) : (
-                  <div className="listening-chip">LISTENING FOR RESISTANCE</div>
-                )}
-              </section>
-
-              <section className="coach-note">
-                <span>COACH NOTE</span>
-                <p>{event.coach}</p>
-              </section>
-
-              <div className="metric-row">
-                <div className="clarity-block">
-                  <div className="clarity-label">
-                    <span>COMMUNICATION CLARITY</span>
-                    <strong>{clarity}%</strong>
-                  </div>
-                  <div
-                    className="clarity-track"
-                    role="progressbar"
-                    aria-valuenow={clarity}
-                    aria-valuemin={10}
-                    aria-valuemax={100}
-                    aria-label="Communication clarity"
-                  >
-                    <span style={{ width: clarity + "%" }} />
-                  </div>
-                </div>
-
-                <div className="point-count">
-                  <strong>{hitCount}/{points.length}</strong>
-                  <span>POINTS</span>
-                </div>
-              </div>
-
-              <div className="point-row" aria-label="Predetermined meeting points">
-                {points.map((point, index) => {
-                  const complete = step >= point.hitAt;
-                  return (
-                    <div className="point-item" key={point.label}>
-                      <span
-                        className={"point-circle " + (complete ? "complete" : "")}
-                        title={point.label}
-                      >
-                        {complete ? "✓" : String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span>{point.short}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </article>
-
-            <div className="lock-actions" aria-hidden="true">
-              <span>◐</span>
-              <span>●</span>
-            </div>
-            <div className="home-indicator" />
+            {screen === "settings" && <section className="screen settings-screen"><div className="screen-head"><button onClick={() => setScreen("home")}>‹</button><h2>Sharing settings</h2><span /></div><p>Choose exactly what Van can see. You can change this anytime.</p><div className="category-list">{categories.map((item) => <button key={item.id} onClick={() => setCategories((all) => all.map((cat) => cat.id === item.id ? { ...cat, enabled: !cat.enabled, detail: cat.enabled ? "Off" : "Selected" } : cat))}><i style={{ background: item.color }} /><span><strong>{item.name}</strong><small>{item.detail}</small></span><em className={item.enabled ? "on" : ""}><i /></em></button>)}</div><small className="settings-foot">Only selected Apple system data is shared. Payment cards and third-party app accounts stay private.</small></section>}
           </div>
         </div>
+
+        <aside className="watch-column"><p className="rail-label">Apple Watch</p><div className={`watch ${screen === "active" && !paused ? "watch-glow" : ""}`}><div className="watch-screen">{screen === "pending" ? <div className="watch-request"><div><b>V</b><strong>Van wants to sync</strong></div><small>Will share</small><p>{summary}</p><button onClick={approve}>{approved ? "Approved ✓" : "Approve"}</button><button onClick={() => setScreen("home")}>Decline</button></div> : screen === "active" ? <div className="watch-active"><i /><strong>{paused ? "Paused" : "Syncing"}</strong><span>with Van</span><button onClick={stop}>Stop</button></div> : <div className="watch-idle"><i /><span>Ready when<br />you are</span></div>}</div></div><p className="watch-hint">{screen === "pending" ? "Both partners tap Approve to begin." : screen === "active" ? "Stop from your wrist anytime." : "Approvals appear here on both watches."}</p></aside>
       </section>
-
-      <aside className="demo-panel" aria-label="Prototype controls and concept">
-        <div className="concept-badge">
-          <span />
-          MEETING COACH · CONCEPT
-        </div>
-
-        <p className="panel-overline">{scenario.eyebrow}</p>
-        <h2>Hit every point.<br />Still read the room.</h2>
-        <p className="panel-lede">
-          The border scores meeting health. Lime scores your own performance.
-          They are intentionally independent.
-        </p>
-
-        <div className="status-explainer">
-          <div>
-            <span className="legend-dot good" />
-            <p><strong>Green</strong><small>Room is aligned</small></p>
-          </div>
-          <div>
-            <span className="legend-dot okay" />
-            <p><strong>Yellow</strong><small>Signals are mixed</small></p>
-          </div>
-          <div>
-            <span className="legend-dot poor" />
-            <p><strong>Red</strong><small>Room is resisting</small></p>
-          </div>
-        </div>
-
-        <div className="scenario-picker">
-          <div className="control-label">
-            <span>DEMO STORY</span>
-            <span>{step + 1} / {events.length}</span>
-          </div>
-          <div className="scenario-buttons" role="group" aria-label="Demo scenario">
-            {(Object.keys(scenarios) as ScenarioKey[]).map((key) => (
-              <button
-                key={key}
-                className={scenarioKey === key ? "selected" : ""}
-                onClick={() => selectScenario(key)}
-                aria-pressed={scenarioKey === key}
-              >
-                {scenarios[key].label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="story-progress" aria-hidden="true">
-          {events.map((_, index) => (
-            <span
-              key={index}
-              className={index < step ? "past" : index === step ? "current" : ""}
-            />
-          ))}
-        </div>
-
-        <div className="story-caption">
-          <p>{scenario.description}</p>
-          <div className="playback-controls">
-            <button onClick={togglePlayback}>
-              {running ? "Pause" : isFinished ? "Replay" : "Resume"}
-            </button>
-            <button onClick={restart}>Restart</button>
-          </div>
-        </div>
-
-        <footer className="panel-footer">
-          <span>LOCK SCREEN LIVE ACTIVITY</span>
-          <span>HTML-READY PROTOTYPE</span>
-        </footer>
-      </aside>
     </main>
   );
 }

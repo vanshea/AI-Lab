@@ -19,21 +19,21 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
   const origin = host ? protocol + "://" + host : "http://localhost:3000";
   const description =
-    "A live meeting coach that tracks your planned points, expertise, clarity, and room sentiment independently.";
+    "Partner is a consent-first prototype for sharing selected Apple system data when two people bring their devices together.";
 
   return {
-    title: "Meeting Coach — Live Lock Screen Prototype",
+    title: "Partner — Consent-first proximity sharing",
     description,
     openGraph: {
-      title: "Meeting Coach",
-      description: "Strong delivery. Tense room.",
+      title: "Partner",
+      description: "Proximity data-sharing. Consent on both wrists.",
       type: "website",
       images: [{ url: new URL("/og.png", origin).toString(), width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Meeting Coach",
-      description: "Strong delivery. Tense room.",
+      title: "Partner",
+      description: "Proximity data-sharing. Consent on both wrists.",
       images: [new URL("/og.png", origin).toString()],
     },
   };
