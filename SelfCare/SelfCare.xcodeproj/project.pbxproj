@@ -1,0 +1,486 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B10000000000000000000001 /* SelfCareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000001 /* SelfCareApp.swift */; };
+		B10000000000000000000002 /* SelfCareModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* SelfCareModel.swift */; };
+		B10000000000000000000003 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* AppTheme.swift */; };
+		B10000000000000000000004 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000004 /* RootView.swift */; };
+		B10000000000000000000005 /* CheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000005 /* CheckInView.swift */; };
+		B10000000000000000000006 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000006 /* SettingsView.swift */; };
+		B10000000000000000000007 /* FactorEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000007 /* FactorEditorView.swift */; };
+		B10000000000000000000008 /* MoodSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000008 /* MoodSlider.swift */; };
+		B10000000000000000000009 /* FactorChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000009 /* FactorChip.swift */; };
+		B1000000000000000000000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000A /* Assets.xcassets */; };
+		B1000000000000000000000B /* SelfCareModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000B /* SelfCareModelTests.swift */; };
+		B1000000000000000000000C /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000C /* HealthKitManager.swift */; };
+		B1000000000000000000000D /* CheckInHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000E /* CheckInHistoryView.swift */; };
+		B1000000000000000000000E /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000F /* WelcomeView.swift */; };
+		B1000000000000000000000F /* PrivacyPolicyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000010 /* PrivacyPolicyView.swift */; };
+		B10000000000000000000010 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* PrivacyInfo.xcprivacy */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		X10000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = T10000000000000000000001;
+			remoteInfo = SelfCare;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		F00000000000000000000001 /* SelfCare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SelfCare.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F00000000000000000000002 /* SelfCareTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SelfCareTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F10000000000000000000001 /* SelfCareApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCareApp.swift; sourceTree = "<group>"; };
+		F10000000000000000000002 /* SelfCareModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCareModel.swift; sourceTree = "<group>"; };
+		F10000000000000000000003 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		F10000000000000000000004 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		F10000000000000000000005 /* CheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInView.swift; sourceTree = "<group>"; };
+		F10000000000000000000006 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F10000000000000000000007 /* FactorEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactorEditorView.swift; sourceTree = "<group>"; };
+		F10000000000000000000008 /* MoodSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodSlider.swift; sourceTree = "<group>"; };
+		F10000000000000000000009 /* FactorChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactorChip.swift; sourceTree = "<group>"; };
+		F1000000000000000000000A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F1000000000000000000000B /* SelfCareModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCareModelTests.swift; sourceTree = "<group>"; };
+		F1000000000000000000000C /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
+		F1000000000000000000000D /* SelfCare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SelfCare.entitlements; sourceTree = "<group>"; };
+		F1000000000000000000000E /* CheckInHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInHistoryView.swift; sourceTree = "<group>"; };
+		F1000000000000000000000F /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		F10000000000000000000010 /* PrivacyPolicyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicyView.swift; sourceTree = "<group>"; };
+		F10000000000000000000011 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		P10000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		P10000000000000000000004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		G10000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				G10000000000000000000003 /* SelfCare */,
+				G10000000000000000000008 /* SelfCareTests */,
+				G10000000000000000000002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		G10000000000000000000002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F00000000000000000000001 /* SelfCare.app */,
+				F00000000000000000000002 /* SelfCareTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		G10000000000000000000003 /* SelfCare */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000001 /* SelfCareApp.swift */,
+				G10000000000000000000004 /* Models */,
+				G10000000000000000000005 /* Theme */,
+				G10000000000000000000006 /* Views */,
+				G10000000000000000000007 /* Components */,
+				G10000000000000000000009 /* Services */,
+				F1000000000000000000000D /* SelfCare.entitlements */,
+				F10000000000000000000011 /* PrivacyInfo.xcprivacy */,
+				F1000000000000000000000A /* Assets.xcassets */,
+			);
+			path = SelfCare;
+			sourceTree = "<group>";
+		};
+		G10000000000000000000004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000002 /* SelfCareModel.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		G10000000000000000000005 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000003 /* AppTheme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		G10000000000000000000006 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000004 /* RootView.swift */,
+				F10000000000000000000005 /* CheckInView.swift */,
+				F1000000000000000000000E /* CheckInHistoryView.swift */,
+				F10000000000000000000006 /* SettingsView.swift */,
+				F10000000000000000000007 /* FactorEditorView.swift */,
+				F1000000000000000000000F /* WelcomeView.swift */,
+				F10000000000000000000010 /* PrivacyPolicyView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		G10000000000000000000007 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000008 /* MoodSlider.swift */,
+				F10000000000000000000009 /* FactorChip.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		G10000000000000000000008 /* SelfCareTests */ = {
+			isa = PBXGroup;
+			children = (
+				F1000000000000000000000B /* SelfCareModelTests.swift */,
+			);
+			path = SelfCareTests;
+			sourceTree = "<group>";
+		};
+		G10000000000000000000009 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				F1000000000000000000000C /* HealthKitManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		T10000000000000000000001 /* SelfCare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = L10000000000000000000002 /* Build configuration list for PBXNativeTarget "SelfCare" */;
+			buildPhases = (
+				P10000000000000000000002 /* Sources */,
+				P10000000000000000000001 /* Frameworks */,
+				P10000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SelfCare;
+			productName = SelfCare;
+			productReference = F00000000000000000000001 /* SelfCare.app */;
+			productType = "com.apple.product-type.application";
+		};
+		T10000000000000000000002 /* SelfCareTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = L10000000000000000000003 /* Build configuration list for PBXNativeTarget "SelfCareTests" */;
+			buildPhases = (
+				P10000000000000000000005 /* Sources */,
+				P10000000000000000000004 /* Frameworks */,
+				P10000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D10000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = SelfCareTests;
+			productName = SelfCareTests;
+			productReference = F00000000000000000000002 /* SelfCareTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					T10000000000000000000001 = {
+						CreatedOnToolsVersion = 26.0;
+						SystemCapabilities = {
+							com.apple.HealthKit = {
+								enabled = 1;
+							};
+						};
+					};
+					T10000000000000000000002 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = T10000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = L10000000000000000000001 /* Build configuration list for PBXProject "SelfCare" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = G10000000000000000000001;
+			productRefGroup = G10000000000000000000002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				T10000000000000000000001 /* SelfCare */,
+				T10000000000000000000002 /* SelfCareTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		P10000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1000000000000000000000A /* Assets.xcassets in Resources */,
+				B10000000000000000000010 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		P10000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		P10000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000001 /* SelfCareApp.swift in Sources */,
+				B10000000000000000000002 /* SelfCareModel.swift in Sources */,
+				B10000000000000000000003 /* AppTheme.swift in Sources */,
+				B10000000000000000000004 /* RootView.swift in Sources */,
+				B10000000000000000000005 /* CheckInView.swift in Sources */,
+				B1000000000000000000000D /* CheckInHistoryView.swift in Sources */,
+				B10000000000000000000006 /* SettingsView.swift in Sources */,
+				B10000000000000000000007 /* FactorEditorView.swift in Sources */,
+				B10000000000000000000008 /* MoodSlider.swift in Sources */,
+				B10000000000000000000009 /* FactorChip.swift in Sources */,
+				B1000000000000000000000C /* HealthKitManager.swift in Sources */,
+				B1000000000000000000000E /* WelcomeView.swift in Sources */,
+				B1000000000000000000000F /* PrivacyPolicyView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		P10000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1000000000000000000000B /* SelfCareModelTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D10000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = T10000000000000000000001 /* SelfCare */;
+			targetProxy = X10000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		C10000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		C10000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		C10000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SelfCare/SelfCare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = W63L7RKS3T;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Self Care";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Self Care reads your exercise time and sleep duration to update your daily check-in.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Self Care saves your logged mood to State of Mind in Apple Health.";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vansedita.SelfCare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		C10000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SelfCare/SelfCare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = W63L7RKS3T;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Self Care";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Self Care reads your exercise time and sleep duration to update your daily check-in.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Self Care saves your logged mood to State of Mind in Apple Health.";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vansedita.SelfCare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		C10000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vansedita.SelfCareTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SelfCare.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SelfCare";
+			};
+			name = Debug;
+		};
+		C10000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vansedita.SelfCareTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SelfCare.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SelfCare";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		L10000000000000000000001 /* Build configuration list for PBXProject "SelfCare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C10000000000000000000001 /* Debug */,
+				C10000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		L10000000000000000000002 /* Build configuration list for PBXNativeTarget "SelfCare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C10000000000000000000003 /* Debug */,
+				C10000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		L10000000000000000000003 /* Build configuration list for PBXNativeTarget "SelfCareTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C10000000000000000000005 /* Debug */,
+				C10000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A10000000000000000000001 /* Project object */;
+}
