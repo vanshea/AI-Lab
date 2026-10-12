@@ -19,15 +19,18 @@ struct PrivacyPolicyView: View {
                 title: "Apple Health",
                 text: "With your permission, Self Care reads Exercise Time and Sleep Analysis and can save a "
                     + "mood as a State of Mind entry. Apple Health permissions are optional and controlled by "
-                    + "you. Self Care does not use Health data for advertising, marketing, or profiling and does "
-                    + "not sell or share it with third parties."
+                    + "you. Self Care does not send Health data to its developers or servers and does not use it "
+                    + "for advertising, marketing, or profiling. A CSV export may contain factor values read from "
+                    + "Apple Health and is shared only when you choose a destination."
             )
 
             policySection(
                 title: "Export and deletion",
                 text: "Self Care exports check-in history only when you choose Export and select a destination. "
-                    + "Reset Self Care Data removes the app’s local history and settings. It does not remove State "
-                    + "of Mind entries already saved in Apple Health."
+                    + "Reset Self Care Data removes the app’s local history and preferences and asks HealthKit to "
+                    + "remove State of Mind entries Self Care previously saved. If HealthKit cannot remove those "
+                    + "entries, Self Care keeps the local data and reports the problem. Health permissions remain "
+                    + "managed by iOS."
             )
 
             policySection(
@@ -37,7 +40,7 @@ struct PrivacyPolicyView: View {
             )
 
             Section {
-                Text("Effective July 22, 2026")
+                Text("Effective October 12, 2026")
                     .foregroundStyle(.secondary)
             }
         }

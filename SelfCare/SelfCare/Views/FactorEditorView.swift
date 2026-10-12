@@ -138,7 +138,8 @@ struct FactorEditorView: View {
     private func syncHealth(requestAuthorization: Bool) {
         Task {
             if requestAuthorization {
-                await healthKit.requestAuthorizationAndRefresh()
+                let dataType: SupportedHealthDataType = factor == .exercise ? .exerciseTime : .sleepAnalysis
+                await healthKit.requestAuthorization(for: dataType)
             } else {
                 await healthKit.refresh()
             }

@@ -54,9 +54,10 @@ With a free Personal Team, the development install may expire after about seven 
 
 1. Open **Self Care Settings** with the gear button.
 2. Tap **Connect Apple Health**.
-3. In Apple’s permission sheet, allow **Exercise Time**, **Sleep Analysis**, and writing **State of Mind**, then tap **Allow**.
-4. Return to Self Care. Exercise and sleep should show the most recent readable values when their entry method is **Apple Health**.
-5. If you add or change data in the Health app, return to Self Care. It refreshes on foreground; you can also tap **Refresh Apple Health**.
+3. In Apple’s permission sheet, allow **Exercise Time** and **Sleep Analysis**, then tap **Allow**.
+4. Separately enable **Save check-in mood to State of Mind** and allow write access when prompted.
+5. Return to Self Care. Exercise and sleep should show the most recent readable values when their entry method is **Apple Health**.
+6. If you add or change data in the Health app, return to Self Care. It refreshes on foreground; you can also tap **Refresh Apple Health**.
 
 State of Mind export requires iOS 18 or later. On iOS 17, check-ins still remain safely stored in Self Care but cannot be sent to Apple Health.
 
@@ -66,23 +67,25 @@ Apple deliberately does not reveal whether an individual read permission was den
 
 Use this checklist on the phone:
 
-1. On a clean install, read the welcome screen and tap **Begin my check-in**. Confirm no Health permission appears before you choose to connect it.
+1. On a clean install, confirm the app opens directly to the full check-in panel with no custom splash, delayed navigation, or Health permission prompt.
 2. Drag the mood thumb from Low to Great and confirm the label and card tint change.
 3. Tap **Exercised**, **Slept well**, and **No scrolling**. Confirm each chip gains or loses its checkmark and the score badge changes.
 4. Long-press each factor chip. Confirm its setup sheet appears.
 5. For Exercise and Sleep, switch between **Apple Health** and **Manual**. Confirm Health values are read-only and manual values remain editable.
 6. Confirm Scrolling only offers manual entry.
 7. Tap the gear, switch Light/Dark appearance, and edit each factor from Settings.
-8. Tap the icon-and-name area in the card header to minimize the card, then tap the capsule to restore it.
-9. Drag an empty area of the wallpaper upward or downward to resize the card.
-10. Tap **Log check-in** and allow State of Mind write access if iOS asks. Confirm the success haptic and saved message.
-11. Open **Settings > History**. Confirm the new entry contains the captured mood, factor values, date, and Apple Health status.
-12. Open **Health > Browse > Mental Wellbeing > State of Mind** and confirm the mood entry appears.
-13. Log another check-in and confirm both momentary check-ins appear newest-first.
-14. In Settings, export History as CSV and inspect the shared file. Then cancel a data reset and confirm nothing changed.
-15. Force-quit and reopen the app. Mood, theme, factor modes, manual values, and check-in history should remain saved for the same local day.
-16. Turn on VoiceOver and verify Mood announces a numeric/semantic value and adjusts with swipe up/down; each factor announces Goal met/not met.
-17. Repeat the core flow in Light and Dark appearance, Reduce Motion, and the largest Accessibility text size.
+8. Tap a blank area outside the card to move from full to compact, then tap outside again to move to minimal. Confirm controls inside the card do not minimize it.
+9. Tap the logo or minimal capsule and confirm the Home control restores the full check-in panel.
+10. Add a manual custom category, relaunch, and confirm it persists. Repeat with an optional supported Apple Health mapping and deny access to confirm manual fallback remains usable.
+11. In Settings, switch between **Open manually** and **Remind me daily**. Confirm the time picker, permission status, one scheduled reminder, time updates, and removal in manual mode.
+12. With mood export off, tap **Log check-in** and confirm no Health permission sheet appears. Then enable mood export in Settings and confirm a later check-in is written to State of Mind.
+13. Open **Settings > History**. Confirm the new entry contains the captured mood, factor values, date, and Apple Health status.
+14. Open **Health > Browse > Mental Wellbeing > State of Mind** and confirm the mood entry appears.
+15. Log another check-in and confirm both momentary check-ins appear newest-first.
+16. In Settings, export History as CSV and inspect the shared file. Then cancel a data reset and confirm nothing changed.
+17. Force-quit and reopen the app. Mood, theme, factor modes, manual values, and check-in history should remain saved for the same local day.
+18. Turn on VoiceOver and verify Mood announces a numeric/semantic value and adjusts with swipe up/down; each factor announces Goal met/not met.
+19. Repeat the core flow in Light and Dark appearance, Reduce Motion, and the largest Accessibility text size.
 
 ## 7. Run the automated tests
 

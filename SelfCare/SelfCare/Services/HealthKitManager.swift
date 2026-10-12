@@ -50,26 +50,32 @@ enum HealthKitError: LocalizedError {
 final class HealthKitManager {
     private static let authorizationRequestedKey = "selfCare.healthKitAuthorizationRequested"
     private static let stateOfMindAuthorizationRequestedKey = "selfCare.stateOfMindAuthorizationRequested"
+    private static let moodExportEnabledKey = "selfCare.moodExportEnabled"
 
     private let healthStore: HKHealthStore
     private let defaults: UserDefaults
+    private let healthDataAvailability: @MainActor () -> Bool
 
     private(set) var status: HealthKitStatus
     private(set) var hasRequestedAuthorization: Bool
     private(set) var hasRequestedStateOfMindAuthorization: Bool
+    private(set) var isMoodExportEnabled: Bool
     private(set) var exerciseMinutes: Double?
     private(set) var sleepHours: Double?
     private(set) var lastUpdated: Date?
 
     init(
         healthStore: HKHealthStore = HKHealthStore(),
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard,
+        healthDataAvailability: @escaping @MainActor () -> Bool = { HKHealthStore.isHealthDataAvailable() }
     ) {
         self.healthStore = healthStore
         self.defaults = defaults
+        self.healthDataAvailability = healthDataAvailability
         hasRequestedAuthorization = defaults.bool(forKey: Self.authorizationRequestedKey)
         hasRequestedStateOfMindAuthorization = defaults.bool(forKey: Self.stateOfMindAuthorizationRequestedKey)
-        status = HKHealthStore.isHealthDataAvailable() ? .notRequested : .unavailable
+        isMoodExportEnabled = defaults.bool(forKey: Self.moodExportEnabledKey)
+        status = healthDataAvailability() ? .notRequested : .unavailable
     }
 
     var isLoading: Bool {
@@ -82,7 +88,7 @@ final class HealthKitManager {
     }
 
     func requestAuthorizationAndRefresh() async {
-        guard HKHealthStore.isHealthDataAvailable() else {
+        guard healthDataAvailability() else {
             status = .unavailable
             return
         }
@@ -90,16 +96,35 @@ final class HealthKitManager {
         status = .loading
 
         do {
-            try await healthStore.requestAuthorization(toShare: Self.writeTypes, read: Self.readTypes)
+            try await healthStore.requestAuthorization(toShare: [], read: Self.readTypes)
             hasRequestedAuthorization = true
-            if #available(iOS 18.0, *) {
-                hasRequestedStateOfMindAuthorization = true
-                defaults.set(true, forKey: Self.stateOfMindAuthorizationRequestedKey)
-            }
             defaults.set(true, forKey: Self.authorizationRequestedKey)
             await refresh()
         } catch {
             status = .failed(error.localizedDescription)
+        }
+    }
+
+    func requestAuthorization(for dataType: SupportedHealthDataType) async {
+        guard healthDataAvailability() else {
+            status = .unavailable
+            return
+        }
+        guard let type = Self.objectType(for: dataType) else {
+            status = .failed("This Apple Health data type is not available on this device.")
+            return
+        }
+
+        status = .loading
+        do {
+            try await healthStore.requestAuthorization(toShare: [], read: [type])
+            hasRequestedAuthorization = true
+            defaults.set(true, forKey: Self.authorizationRequestedKey)
+            await refresh(dataType)
+        } catch {
+            status = .failed(
+                "Apple Health access wasn’t granted. The category is still available for manual check-in."
+            )
         }
     }
 
@@ -109,7 +134,7 @@ final class HealthKitManager {
     }
 
     func refresh() async {
-        guard HKHealthStore.isHealthDataAvailable() else {
+        guard healthDataAvailability() else {
             status = .unavailable
             return
         }
@@ -130,38 +155,169 @@ final class HealthKitManager {
         }
     }
 
-    func saveCheckInMood(_ moodValue: Double, at date: Date) async throws -> UUID? {
-        guard HKHealthStore.isHealthDataAvailable() else { return nil }
+    func refresh(_ dataType: SupportedHealthDataType) async {
+        guard healthDataAvailability() else {
+            status = .unavailable
+            return
+        }
+
+        status = .loading
+        do {
+            switch dataType {
+            case .exerciseTime:
+                exerciseMinutes = try await queryExerciseMinutesToday()
+            case .sleepAnalysis:
+                sleepHours = try await queryLastNightSleepHours()
+            }
+            lastUpdated = .now
+            let hasData = dataType == .exerciseTime ? exerciseMinutes != nil : sleepHours != nil
+            status = hasData ? .ready : .noData
+        } catch {
+            status = .failed(error.localizedDescription)
+        }
+    }
+
+    func setMoodExportEnabled(_ enabled: Bool) async {
+        guard enabled else {
+            isMoodExportEnabled = false
+            defaults.set(false, forKey: Self.moodExportEnabledKey)
+            return
+        }
+
+        guard healthDataAvailability(), #available(iOS 18.0, *) else {
+            isMoodExportEnabled = false
+            defaults.set(false, forKey: Self.moodExportEnabledKey)
+            status = .unavailable
+            return
+        }
+
+        isMoodExportEnabled = true
+        defaults.set(true, forKey: Self.moodExportEnabledKey)
+
+        let stateOfMindType = HKObjectType.stateOfMindType()
+        do {
+            if healthStore.authorizationStatus(for: stateOfMindType) == .notDetermined {
+                try await healthStore.requestAuthorization(toShare: [stateOfMindType], read: [])
+                hasRequestedStateOfMindAuthorization = true
+                defaults.set(true, forKey: Self.stateOfMindAuthorizationRequestedKey)
+            }
+
+            guard healthStore.authorizationStatus(for: stateOfMindType) == .sharingAuthorized else {
+                throw HealthKitError.stateOfMindWriteDenied
+            }
+        } catch {
+            isMoodExportEnabled = false
+            defaults.set(false, forKey: Self.moodExportEnabledKey)
+            status = .failed(error.localizedDescription)
+        }
+    }
+
+    func resetPreferences() {
+        defaults.removeObject(forKey: Self.authorizationRequestedKey)
+        defaults.removeObject(forKey: Self.stateOfMindAuthorizationRequestedKey)
+        defaults.removeObject(forKey: Self.moodExportEnabledKey)
+        hasRequestedAuthorization = false
+        hasRequestedStateOfMindAuthorization = false
+        isMoodExportEnabled = false
+        exerciseMinutes = nil
+        sleepHours = nil
+        lastUpdated = nil
+        status = healthDataAvailability() ? .notRequested : .unavailable
+    }
+
+    func saveCheckInMood(_ checkIn: CheckInRecord, syncVersion: Int64) async throws -> UUID? {
+        guard isMoodExportEnabled else { return nil }
+        guard healthDataAvailability() else { return nil }
         guard #available(iOS 18.0, *) else { return nil }
 
         let stateOfMindType = HKObjectType.stateOfMindType()
-
-        if healthStore.authorizationStatus(for: stateOfMindType) == .notDetermined {
-            try await healthStore.requestAuthorization(
-                toShare: [stateOfMindType],
-                read: Self.readTypes
-            )
-            hasRequestedStateOfMindAuthorization = true
-            defaults.set(true, forKey: Self.stateOfMindAuthorizationRequestedKey)
-        }
 
         guard healthStore.authorizationStatus(for: stateOfMindType) == .sharingAuthorized else {
             throw HealthKitError.stateOfMindWriteDenied
         }
 
         let sample = HKStateOfMind(
-            date: date,
+            date: checkIn.date,
             kind: .momentaryEmotion,
-            valence: Self.stateOfMindValence(for: moodValue),
+            valence: Self.stateOfMindValence(for: checkIn.moodValue),
             labels: [],
-            associations: [.selfCare]
+            associations: Self.stateOfMindAssociations(for: checkIn),
+            metadata: [
+                HKMetadataKeySyncIdentifier: Self.syncIdentifier(for: checkIn.id),
+                HKMetadataKeySyncVersion: syncVersion
+            ]
         )
         try await healthStore.save(sample)
         return sample.uuid
     }
 
+    func deleteCheckInMood(for checkInID: UUID) async throws {
+        guard healthDataAvailability(), #available(iOS 18.0, *) else { return }
+        let type = HKObjectType.stateOfMindType()
+        let predicate = HKQuery.predicateForObjects(
+            withMetadataKey: HKMetadataKeySyncIdentifier,
+            operatorType: .equalTo,
+            value: Self.syncIdentifier(for: checkInID)
+        )
+        _ = try await healthStore.deleteObjects(of: type, predicate: predicate)
+    }
+
     nonisolated static func stateOfMindValence(for moodValue: Double) -> Double {
         min(1, max(-1, (moodValue / 50) - 1))
+    }
+
+    nonisolated static func syncIdentifier(for checkInID: UUID) -> String {
+        "com.vansedita.SelfCare.checkin.\(checkInID.uuidString)"
+    }
+
+    @available(iOS 18.0, *)
+    nonisolated static func stateOfMindAssociations(
+        for checkIn: CheckInRecord
+    ) -> [HKStateOfMind.Association] {
+        var associations = Set<HKStateOfMind.Association>()
+
+        if (checkIn.factorValues[.exercise] ?? 0) > 0 {
+            associations.insert(.fitness)
+        }
+        if checkIn.metFactors.contains(.sleep) {
+            associations.insert(.health)
+        }
+        for (categoryID, name) in checkIn.customCategoryNames ?? [:]
+        where checkIn.completedCustomCategoryIDs?.contains(categoryID) == true {
+            if let association = association(for: name) {
+                associations.insert(association)
+            }
+        }
+
+        return associations.sorted { $0.rawValue < $1.rawValue }
+    }
+
+    @available(iOS 18.0, *)
+    nonisolated private static func association(for categoryName: String) -> HKStateOfMind.Association? {
+        let normalized = categoryName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        return switch normalized {
+        case "work": .work
+        case "family": .family
+        case "friends": .friends
+        case "partner": .partner
+        case "dating": .dating
+        case "education", "study", "studying": .education
+        case "fitness", "exercise", "workout", "yoga": .fitness
+        case "health": .health
+        case "hobbies", "hobby": .hobbies
+        case "money", "finances": .money
+        case "self care", "self-care", "meditation", "journaling": .selfCare
+        case "spirituality", "spiritual": .spirituality
+        case "tasks", "chores", "errands": .tasks
+        case "travel": .travel
+        case "weather": .weather
+        case "community": .community
+        case "current events": .currentEvents
+        case "identity": .identity
+        default: nil
+        }
     }
 
     private static var readTypes: Set<HKObjectType> {
@@ -175,9 +331,13 @@ final class HealthKitManager {
         return types
     }
 
-    private static var writeTypes: Set<HKSampleType> {
-        guard #available(iOS 18.0, *) else { return [] }
-        return [HKObjectType.stateOfMindType()]
+    private static func objectType(for dataType: SupportedHealthDataType) -> HKObjectType? {
+        switch dataType {
+        case .exerciseTime:
+            HKObjectType.quantityType(forIdentifier: .appleExerciseTime)
+        case .sleepAnalysis:
+            HKObjectType.categoryType(forIdentifier: .sleepAnalysis)
+        }
     }
 
     private func queryExerciseMinutesToday() async throws -> Double? {

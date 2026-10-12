@@ -3,11 +3,18 @@ import SwiftUI
 struct RootView: View {
     @Bindable var model: SelfCareModel
     @Bindable var healthKit: HealthKitManager
+    @Bindable var reminders: CheckInReminderService
     @Environment(\.scenePhase) private var scenePhase
+    @State private var snackbarState: SnackbarPresentationState = .full
 
     var body: some View {
         NavigationStack {
-            CheckInView(model: model, healthKit: healthKit)
+            CheckInView(
+                model: model,
+                healthKit: healthKit,
+                reminders: reminders,
+                presentationState: $snackbarState
+            )
         }
         .tint(SelfCareTheme.accent)
         .sheet(item: $model.editingFactor) { factor in
@@ -17,25 +24,11 @@ struct RootView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        .fullScreenCover(
-            isPresented: Binding(
-                get: { !model.hasCompletedOnboarding },
-                set: { isPresented in
-                    if !isPresented {
-                        model.completeOnboarding()
-                    }
-                }
-            )
-        ) {
-            WelcomeView {
-                model.completeOnboarding()
-            }
-            .interactiveDismissDisabled()
-        }
         .task {
             model.refreshForCurrentDay()
             await healthKit.refreshIfPreviouslyRequested()
             applyHealthValues()
+            await reminders.reconcileSchedule()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
@@ -43,7 +36,15 @@ struct RootView: View {
             Task {
                 await healthKit.refreshIfPreviouslyRequested()
                 applyHealthValues()
+                await reminders.reconcileSchedule()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openSelfCareCheckIn)) { _ in
+            snackbarState = .full
+        }
+        .onOpenURL { url in
+            guard url.host == "check-in" || url.path == "/check-in" else { return }
+            snackbarState = .full
         }
     }
 
@@ -56,5 +57,9 @@ struct RootView: View {
 }
 
 #Preview {
-    RootView(model: SelfCareModel(), healthKit: HealthKitManager())
+    RootView(
+        model: SelfCareModel(),
+        healthKit: HealthKitManager(),
+        reminders: CheckInReminderService()
+    )
 }

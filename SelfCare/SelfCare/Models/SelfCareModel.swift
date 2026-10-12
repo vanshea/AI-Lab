@@ -27,6 +27,79 @@ enum GoalDirection: String, Codable {
     case atMost
 }
 
+enum CategorySource: String, Codable, CaseIterable, Identifiable {
+    case manual
+    case appleHealth
+
+    var id: Self { self }
+}
+
+enum SupportedHealthDataType: String, Codable, CaseIterable, Identifiable {
+    case exerciseTime
+    case sleepAnalysis
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .exerciseTime: "Exercise Time"
+        case .sleepAnalysis: "Sleep Analysis"
+        }
+    }
+
+    var healthKitIdentifier: String {
+        switch self {
+        case .exerciseTime: "HKQuantityTypeIdentifierAppleExerciseTime"
+        case .sleepAnalysis: "HKCategoryTypeIdentifierSleepAnalysis"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .exerciseTime: "figure.run"
+        case .sleepAnalysis: "moon.stars.fill"
+        }
+    }
+}
+
+struct SelfCareCategory: Identifiable, Codable, Equatable {
+    let id: UUID
+    var name: String
+    var source: CategorySource
+    var healthDataTypeIdentifier: String?
+    var isUserCreated: Bool
+
+    var linkedHealthDataType: SupportedHealthDataType? {
+        guard let healthDataTypeIdentifier else { return nil }
+        return SupportedHealthDataType.allCases.first {
+            $0.healthKitIdentifier == healthDataTypeIdentifier
+        }
+    }
+}
+
+enum SelfCareModelError: LocalizedError, Equatable {
+    case emptyCategoryName
+    case duplicateCategoryName
+    case categoryNotFound
+    case checkInNotFound
+    case persistenceFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .emptyCategoryName:
+            "Enter a category name."
+        case .duplicateCategoryName:
+            "A category with this name already exists."
+        case .categoryNotFound:
+            "This category is no longer available."
+        case .checkInNotFound:
+            "This check-in is no longer available."
+        case .persistenceFailed:
+            "Self Care couldn’t save this change. Please try again."
+        }
+    }
+}
+
 enum FactorKey: String, Codable, CaseIterable, Identifiable, Hashable {
     case exercise
     case sleep
@@ -105,6 +178,7 @@ struct FactorState: Codable, Equatable {
 
 enum HealthSyncState: String, Codable, Equatable {
     case pending
+    case notRequested
     case synced
     case unavailable
     case failed
@@ -116,8 +190,11 @@ struct CheckInRecord: Codable, Identifiable, Equatable {
     let moodValue: Double
     let factorValues: [FactorKey: Double]
     let metFactors: Set<FactorKey>
+    var customCategoryNames: [UUID: String]?
+    var completedCustomCategoryIDs: Set<UUID>?
     var healthSyncState: HealthSyncState
     var healthSampleID: UUID?
+    var healthSyncVersion: Int64?
 
     var moodLabel: String {
         SelfCareModel.moodLabel(for: moodValue)
@@ -137,11 +214,12 @@ struct LocalDay: Codable, Equatable {
 private struct PersistedSelfCareState: Codable {
     var theme: AppTheme
     var moodValue: Double
-    var checkInLogged: Bool?
     var factors: [FactorKey: FactorState]
     var checkIns: [CheckInRecord]?
     var activeDay: LocalDay?
-    var hasCompletedOnboarding: Bool?
+    var customCategories: [SelfCareCategory]?
+    var selectedCustomCategoryIDs: Set<UUID>?
+    var suppressedCustomCategoryIDs: Set<UUID>?
 }
 
 @MainActor
@@ -157,7 +235,9 @@ final class SelfCareModel {
     private(set) var healthValues: [FactorKey: Double] = [:]
     private(set) var checkIns: [CheckInRecord]
     private(set) var activeDay: LocalDay
-    private(set) var hasCompletedOnboarding: Bool
+    private(set) var customCategories: [SelfCareCategory]
+    private(set) var selectedCustomCategoryIDs: Set<UUID>
+    private(set) var suppressedCustomCategoryIDs: Set<UUID>
     private(set) var persistenceRecoveryMessage: String?
 
     var editingFactor: FactorKey?
@@ -172,7 +252,9 @@ final class SelfCareModel {
             factors = Self.defaultFactors
             checkIns = []
             activeDay = today
-            hasCompletedOnboarding = false
+            customCategories = []
+            selectedCustomCategoryIDs = []
+            suppressedCustomCategoryIDs = []
             persistenceRecoveryMessage = nil
             return
         }
@@ -184,7 +266,9 @@ final class SelfCareModel {
             factors = Self.mergingDefaults(into: saved.factors)
             checkIns = (saved.checkIns ?? []).sorted { $0.date > $1.date }
             activeDay = saved.activeDay ?? today
-            hasCompletedOnboarding = saved.hasCompletedOnboarding ?? true
+            customCategories = saved.customCategories ?? []
+            selectedCustomCategoryIDs = saved.selectedCustomCategoryIDs ?? []
+            suppressedCustomCategoryIDs = saved.suppressedCustomCategoryIDs ?? []
             persistenceRecoveryMessage = nil
         } catch {
             theme = .dark
@@ -192,7 +276,9 @@ final class SelfCareModel {
             factors = Self.defaultFactors
             checkIns = []
             activeDay = today
-            hasCompletedOnboarding = false
+            customCategories = []
+            selectedCustomCategoryIDs = []
+            suppressedCustomCategoryIDs = []
             persistenceRecoveryMessage = "Self Care couldn’t read its saved data, "
                 + "so it started with a safe, empty check-in."
         }
@@ -206,6 +292,14 @@ final class SelfCareModel {
         FactorKey.allCases.filter(isMet).count
     }
 
+    var completedCategoryCount: Int {
+        completedFactorCount + customCategories.filter(isCustomCategoryCompleted).count
+    }
+
+    var totalCategoryCount: Int {
+        FactorKey.allCases.count + customCategories.count
+    }
+
     var checkInLogged: Bool {
         !checkIns.isEmpty
     }
@@ -216,12 +310,7 @@ final class SelfCareModel {
 
     func setTheme(_ newTheme: AppTheme) {
         theme = newTheme
-        persist()
-    }
-
-    func completeOnboarding() {
-        hasCompletedOnboarding = true
-        persist()
+        persistBestEffort()
     }
 
     @discardableResult
@@ -238,13 +327,15 @@ final class SelfCareModel {
         factors = factors.mapValues { state in
             FactorState(mode: state.mode, manualValue: 0)
         }
-        persist()
+        selectedCustomCategoryIDs.removeAll()
+        suppressedCustomCategoryIDs.removeAll()
+        persistBestEffort()
         return true
     }
 
     func setMood(_ newValue: Double) {
         moodValue = min(100, max(0, newValue))
-        persist()
+        persistBestEffort()
     }
 
     func state(for factor: FactorKey) -> FactorState {
@@ -280,7 +371,7 @@ final class SelfCareModel {
         var updated = state(for: factor)
         updated.mode = mode == .automatic && !factor.supportsHealthKit ? .manual : mode
         factors[factor] = updated
-        persist()
+        persistBestEffort()
     }
 
     func updateHealthValues(exerciseMinutes: Double?, sleepHours: Double?) {
@@ -292,7 +383,7 @@ final class SelfCareModel {
         var updated = state(for: factor)
         updated.manualValue = max(0, value)
         factors[factor] = updated
-        persist()
+        persistBestEffort()
     }
 
     func quickToggle(_ factor: FactorKey) {
@@ -312,24 +403,137 @@ final class SelfCareModel {
         }
 
         factors[factor] = FactorState(mode: .manual, manualValue: nextValue)
-        persist()
+        persistBestEffort()
+    }
+
+    func isCustomCategoryCompleted(_ category: SelfCareCategory) -> Bool {
+        if suppressedCustomCategoryIDs.contains(category.id) {
+            return false
+        }
+        if selectedCustomCategoryIDs.contains(category.id) {
+            return true
+        }
+        guard category.source == .appleHealth, let healthType = category.linkedHealthDataType else {
+            return false
+        }
+        switch healthType {
+        case .exerciseTime:
+            return (healthValues[.exercise] ?? 0) > 0
+        case .sleepAnalysis:
+            return (healthValues[.sleep] ?? 0) > 0
+        }
+    }
+
+    func toggleCustomCategory(_ categoryID: UUID) {
+        guard let category = customCategories.first(where: { $0.id == categoryID }) else { return }
+        if isCustomCategoryCompleted(category) {
+            selectedCustomCategoryIDs.remove(categoryID)
+            suppressedCustomCategoryIDs.insert(categoryID)
+        } else {
+            selectedCustomCategoryIDs.insert(categoryID)
+            suppressedCustomCategoryIDs.remove(categoryID)
+        }
+        persistBestEffort()
     }
 
     @discardableResult
-    func logCheckIn(at date: Date = .now) -> CheckInRecord {
+    func addCategory(
+        named name: String,
+        healthDataType: SupportedHealthDataType? = nil
+    ) throws -> SelfCareCategory {
+        let normalizedName = try validatedCategoryName(name)
+        let category = SelfCareCategory(
+            id: UUID(),
+            name: normalizedName,
+            source: healthDataType == nil ? .manual : .appleHealth,
+            healthDataTypeIdentifier: healthDataType?.healthKitIdentifier,
+            isUserCreated: true
+        )
+        customCategories.append(category)
+        do {
+            try persist()
+            return category
+        } catch {
+            customCategories.removeAll { $0.id == category.id }
+            throw error
+        }
+    }
+
+    func updateCategory(
+        id: UUID,
+        name: String,
+        healthDataType: SupportedHealthDataType?
+    ) throws {
+        guard let index = customCategories.firstIndex(where: { $0.id == id }) else {
+            throw SelfCareModelError.categoryNotFound
+        }
+        let normalizedName = try validatedCategoryName(name, excluding: id)
+        let previous = customCategories[index]
+        customCategories[index].name = normalizedName
+        customCategories[index].source = healthDataType == nil ? .manual : .appleHealth
+        customCategories[index].healthDataTypeIdentifier = healthDataType?.healthKitIdentifier
+        do {
+            try persist()
+        } catch {
+            customCategories[index] = previous
+            throw error
+        }
+    }
+
+    func deleteCategory(id: UUID) throws {
+        guard let index = customCategories.firstIndex(where: { $0.id == id }) else {
+            throw SelfCareModelError.categoryNotFound
+        }
+        let category = customCategories.remove(at: index)
+        let wasSelected = selectedCustomCategoryIDs.remove(category.id) != nil
+        let wasSuppressed = suppressedCustomCategoryIDs.remove(category.id) != nil
+        do {
+            try persist()
+        } catch {
+            customCategories.insert(category, at: index)
+            if wasSelected {
+                selectedCustomCategoryIDs.insert(category.id)
+            }
+            if wasSuppressed {
+                suppressedCustomCategoryIDs.insert(category.id)
+            }
+            throw error
+        }
+    }
+
+    func hasCheckedInToday(
+        at date: Date = .now,
+        calendar: Calendar = .autoupdatingCurrent
+    ) -> Bool {
+        checkIns.contains { calendar.isDate($0.date, inSameDayAs: date) }
+    }
+
+    @discardableResult
+    func logCheckIn(at date: Date = .now) throws -> CheckInRecord {
         let values = Dictionary(uniqueKeysWithValues: FactorKey.allCases.map { ($0, value(for: $0)) })
+        let completedCustomIDs = Set(
+            customCategories.filter(isCustomCategoryCompleted).map(\.id)
+        )
         let record = CheckInRecord(
             id: UUID(),
             date: date,
             moodValue: moodValue,
             factorValues: values,
             metFactors: Set(FactorKey.allCases.filter(isMet)),
+            customCategoryNames: Dictionary(uniqueKeysWithValues: customCategories.map { ($0.id, $0.name) }),
+            completedCustomCategoryIDs: completedCustomIDs,
             healthSyncState: .pending,
-            healthSampleID: nil
+            healthSampleID: nil,
+            healthSyncVersion: nil
         )
         checkIns.insert(record, at: 0)
-        persist()
-        return record
+        do {
+            try persist()
+            return record
+        } catch {
+            checkIns.removeAll { $0.id == record.id }
+            throw error
+        }
     }
 
     func updateHealthSync(
@@ -339,8 +543,34 @@ final class SelfCareModel {
     ) {
         guard let index = checkIns.firstIndex(where: { $0.id == checkInID }) else { return }
         checkIns[index].healthSyncState = state
-        checkIns[index].healthSampleID = sampleID
-        persist()
+        if let sampleID {
+            checkIns[index].healthSampleID = sampleID
+        }
+        persistBestEffort()
+    }
+
+    @discardableResult
+    func nextHealthSyncVersion(for checkInID: UUID) -> Int64? {
+        guard let index = checkIns.firstIndex(where: { $0.id == checkInID }) else { return nil }
+        let nextVersion = (checkIns[index].healthSyncVersion ?? 0) + 1
+        checkIns[index].healthSyncVersion = nextVersion
+        persistBestEffort()
+        return nextVersion
+    }
+
+    @discardableResult
+    func deleteCheckIn(id: UUID) throws -> CheckInRecord {
+        guard let index = checkIns.firstIndex(where: { $0.id == id }) else {
+            throw SelfCareModelError.checkInNotFound
+        }
+        let deleted = checkIns.remove(at: index)
+        do {
+            try persist()
+            return deleted
+        } catch {
+            checkIns.insert(deleted, at: index)
+            throw error
+        }
     }
 
     func dismissPersistenceRecoveryMessage() {
@@ -374,7 +604,9 @@ final class SelfCareModel {
         healthValues.removeAll()
         checkIns = []
         activeDay = Self.localDay(containing: .now)
-        hasCompletedOnboarding = false
+        customCategories = []
+        selectedCustomCategoryIDs = []
+        suppressedCustomCategoryIDs = []
         persistenceRecoveryMessage = nil
     }
 
@@ -407,18 +639,52 @@ final class SelfCareModel {
         )
     }
 
-    private func persist() {
+    private func persist() throws {
         let state = PersistedSelfCareState(
             theme: theme,
             moodValue: moodValue,
-            checkInLogged: checkInLogged,
             factors: factors,
             checkIns: checkIns,
             activeDay: activeDay,
-            hasCompletedOnboarding: hasCompletedOnboarding
+            customCategories: customCategories,
+            selectedCustomCategoryIDs: selectedCustomCategoryIDs,
+            suppressedCustomCategoryIDs: suppressedCustomCategoryIDs
         )
-        guard let data = try? JSONEncoder().encode(state) else { return }
+        let data: Data
+        do {
+            data = try JSONEncoder().encode(state)
+        } catch {
+            throw SelfCareModelError.persistenceFailed
+        }
         defaults.set(data, forKey: Self.storageKey)
+    }
+
+    private func persistBestEffort() {
+        do {
+            try persist()
+        } catch {
+            persistenceRecoveryMessage = SelfCareModelError.persistenceFailed.localizedDescription
+        }
+    }
+
+    private func validatedCategoryName(
+        _ name: String,
+        excluding excludedID: UUID? = nil
+    ) throws -> String {
+        let normalized = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else {
+            throw SelfCareModelError.emptyCategoryName
+        }
+        let builtInNames = FactorKey.allCases.map(\.label)
+        let customNames = customCategories
+            .filter { $0.id != excludedID }
+            .map(\.name)
+        guard !(builtInNames + customNames).contains(where: {
+            $0.compare(normalized, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+        }) else {
+            throw SelfCareModelError.duplicateCategoryName
+        }
+        return normalized
     }
 
     private static func mergingDefaults(into saved: [FactorKey: FactorState]) -> [FactorKey: FactorState] {

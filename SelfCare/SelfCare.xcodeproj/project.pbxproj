@@ -20,9 +20,9 @@
 		B1000000000000000000000B /* SelfCareModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000B /* SelfCareModelTests.swift */; };
 		B1000000000000000000000C /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000C /* HealthKitManager.swift */; };
 		B1000000000000000000000D /* CheckInHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000E /* CheckInHistoryView.swift */; };
-		B1000000000000000000000E /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000000F /* WelcomeView.swift */; };
 		B1000000000000000000000F /* PrivacyPolicyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000010 /* PrivacyPolicyView.swift */; };
 		B10000000000000000000010 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* PrivacyInfo.xcprivacy */; };
+		B10000000000000000000011 /* CheckInReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* CheckInReminderService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -52,9 +52,9 @@
 		F1000000000000000000000C /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
 		F1000000000000000000000D /* SelfCare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SelfCare.entitlements; sourceTree = "<group>"; };
 		F1000000000000000000000E /* CheckInHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInHistoryView.swift; sourceTree = "<group>"; };
-		F1000000000000000000000F /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		F10000000000000000000010 /* PrivacyPolicyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicyView.swift; sourceTree = "<group>"; };
 		F10000000000000000000011 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F10000000000000000000012 /* CheckInReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInReminderService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -133,7 +133,6 @@
 				F1000000000000000000000E /* CheckInHistoryView.swift */,
 				F10000000000000000000006 /* SettingsView.swift */,
 				F10000000000000000000007 /* FactorEditorView.swift */,
-				F1000000000000000000000F /* WelcomeView.swift */,
 				F10000000000000000000010 /* PrivacyPolicyView.swift */,
 			);
 			path = Views;
@@ -160,6 +159,7 @@
 			isa = PBXGroup;
 			children = (
 				F1000000000000000000000C /* HealthKitManager.swift */,
+				F10000000000000000000012 /* CheckInReminderService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -280,7 +280,7 @@
 				B10000000000000000000008 /* MoodSlider.swift in Sources */,
 				B10000000000000000000009 /* FactorChip.swift in Sources */,
 				B1000000000000000000000C /* HealthKitManager.swift in Sources */,
-				B1000000000000000000000E /* WelcomeView.swift in Sources */,
+				B10000000000000000000011 /* CheckInReminderService.swift in Sources */,
 				B1000000000000000000000F /* PrivacyPolicyView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -329,21 +329,31 @@
 				CLANG_ENABLE_MODULES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_WARN_64_TO_32_BIT = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
 		C10000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = SelfCareColorIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SelfCare/SelfCare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = W63L7RKS3T;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Self Care";
@@ -352,6 +362,7 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Self Care reads your exercise time and sleep duration to update your daily check-in.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Self Care saves your logged mood to State of Mind in Apple Health.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -373,11 +384,11 @@
 		C10000000000000000000004 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = SelfCareColorIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SelfCare/SelfCare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = W63L7RKS3T;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Self Care";
@@ -386,6 +397,7 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Self Care reads your exercise time and sleep duration to update your daily check-in.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Self Care saves your logged mood to State of Mind in Apple Health.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -409,7 +421,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -432,7 +444,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

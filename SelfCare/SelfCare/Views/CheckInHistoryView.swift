@@ -50,7 +50,10 @@ private struct CheckInHistoryRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                Text("\(checkIn.completedFactorCount) of \(FactorKey.allCases.count) daily goals")
+                Text(
+                    "\(checkIn.completedFactorCount + (checkIn.completedCustomCategoryIDs?.count ?? 0)) "
+                        + "completed categories"
+                )
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -71,6 +74,9 @@ private struct CheckInDetailView: View {
     let checkInID: UUID
 
     @State private var isRetrying = false
+    @State private var isConfirmingDelete = false
+    @State private var deletionError: String?
+    @Environment(\.dismiss) private var dismiss
 
     private var checkIn: CheckInRecord? {
         model.checkIns.first(where: { $0.id == checkInID })
@@ -103,6 +109,27 @@ private struct CheckInDetailView: View {
                     }
                 }
 
+                if let customCategoryNames = checkIn.customCategoryNames, !customCategoryNames.isEmpty {
+                    Section("Custom categories") {
+                        ForEach(
+                            customCategoryNames.sorted { $0.value.localizedCaseInsensitiveCompare($1.value) == .orderedAscending },
+                            id: \.key
+                        ) { category in
+                            Label(
+                                category.value,
+                                systemImage: checkIn.completedCustomCategoryIDs?.contains(category.key) == true
+                                    ? "checkmark.circle.fill"
+                                    : "circle"
+                            )
+                            .foregroundStyle(
+                                checkIn.completedCustomCategoryIDs?.contains(category.key) == true
+                                    ? SelfCareTheme.goalMet
+                                    : .secondary
+                            )
+                        }
+                    }
+                }
+
                 Section {
                     Label(checkIn.healthSyncState.title, systemImage: checkIn.healthSyncState.symbol)
                         .foregroundStyle(checkIn.healthSyncState.color)
@@ -122,13 +149,43 @@ private struct CheckInDetailView: View {
         }
         .navigationTitle("Check-in")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if checkIn != nil {
+                ToolbarItem(placement: .destructiveAction) {
+                    Button("Delete check-in", systemImage: "trash", role: .destructive) {
+                        isConfirmingDelete = true
+                    }
+                }
+            }
+        }
+        .confirmationDialog(
+            "Delete this check-in?",
+            isPresented: $isConfirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button("Delete check-in", role: .destructive) {
+                deleteCheckIn()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes the local entry and its Self Care-authored Apple Health mood entry, if one exists.")
+        }
+        .alert("Couldn’t delete check-in", isPresented: Binding(
+            get: { deletionError != nil },
+            set: { if !$0 { deletionError = nil } }
+        )) {
+            Button("OK", role: .cancel) { deletionError = nil }
+        } message: {
+            Text(deletionError ?? "Please try again.")
+        }
     }
 
     private func retryHealthSync(_ checkIn: CheckInRecord) {
         isRetrying = true
         Task {
             do {
-                if let sampleID = try await healthKit.saveCheckInMood(checkIn.moodValue, at: checkIn.date) {
+                let syncVersion = model.nextHealthSyncVersion(for: checkIn.id) ?? 1
+                if let sampleID = try await healthKit.saveCheckInMood(checkIn, syncVersion: syncVersion) {
                     model.updateHealthSync(for: checkIn.id, state: .synced, sampleID: sampleID)
                 } else {
                     model.updateHealthSync(for: checkIn.id, state: .unavailable)
@@ -139,12 +196,28 @@ private struct CheckInDetailView: View {
             isRetrying = false
         }
     }
+
+    private func deleteCheckIn() {
+        guard let checkIn else { return }
+        Task {
+            do {
+                if checkIn.healthSyncState == .synced {
+                    try await healthKit.deleteCheckInMood(for: checkIn.id)
+                }
+                try model.deleteCheckIn(id: checkIn.id)
+                dismiss()
+            } catch {
+                deletionError = "The check-in was kept. \(error.localizedDescription)"
+            }
+        }
+    }
 }
 
 private extension HealthSyncState {
     var title: String {
         switch self {
         case .pending: "Waiting for Apple Health"
+        case .notRequested: "Apple Health mood export off"
         case .synced: "Saved to Apple Health"
         case .unavailable: "Apple Health mood export unavailable"
         case .failed: "Saved here, but not to Apple Health"
@@ -154,6 +227,7 @@ private extension HealthSyncState {
     var symbol: String {
         switch self {
         case .pending: "clock"
+        case .notRequested: "heart"
         case .synced: "heart.fill"
         case .unavailable: "heart.slash"
         case .failed: "exclamationmark.triangle"

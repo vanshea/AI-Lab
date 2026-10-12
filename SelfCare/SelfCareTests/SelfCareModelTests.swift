@@ -67,7 +67,7 @@ final class SelfCareModelTests: XCTestCase {
         model.setMode(.automatic, for: .exercise)
         model.setMood(91)
         model.setManualValue(45, for: .sleep)
-        let checkIn = model.logCheckIn(at: firstDay)
+        let checkIn = try model.logCheckIn(at: firstDay)
 
         XCTAssertTrue(model.refreshForCurrentDay(at: nextDay, calendar: calendar))
         XCTAssertEqual(model.moodValue, 53)
@@ -145,7 +145,7 @@ final class SelfCareModelTests: XCTestCase {
         XCTAssertEqual(HealthKitManager.unionDuration(of: intervals), 4 * 3_600)
     }
 
-    func testCheckInsCaptureSnapshotsAndPersist() {
+    func testCheckInsCaptureSnapshotsAndPersist() throws {
         let defaults = freshDefaults()
         let model = SelfCareModel(defaults: defaults)
         model.setMood(83)
@@ -154,7 +154,7 @@ final class SelfCareModelTests: XCTestCase {
         model.setManualValue(20, for: .scrolling)
 
         let date = Date(timeIntervalSinceReferenceDate: 123_456)
-        let checkIn = model.logCheckIn(at: date)
+        let checkIn = try model.logCheckIn(at: date)
 
         XCTAssertEqual(checkIn.date, date)
         XCTAssertEqual(checkIn.moodValue, 83)
@@ -166,32 +166,105 @@ final class SelfCareModelTests: XCTestCase {
         XCTAssertEqual(restored.checkIns, [checkIn])
     }
 
-    func testMultipleCheckInsAreNewestFirst() {
+    func testMultipleCheckInsAreNewestFirst() throws {
         let model = SelfCareModel(defaults: freshDefaults())
-        let earlier = model.logCheckIn(at: Date(timeIntervalSinceReferenceDate: 100))
-        let later = model.logCheckIn(at: Date(timeIntervalSinceReferenceDate: 200))
+        let earlier = try model.logCheckIn(at: Date(timeIntervalSinceReferenceDate: 100))
+        let later = try model.logCheckIn(at: Date(timeIntervalSinceReferenceDate: 200))
 
         XCTAssertEqual(model.checkIns.map(\.id), [later.id, earlier.id])
     }
 
-    func testHealthSyncStatePersists() {
+    func testHealthSyncStatePersists() throws {
         let defaults = freshDefaults()
         let model = SelfCareModel(defaults: defaults)
-        let checkIn = model.logCheckIn()
+        let checkIn = try model.logCheckIn()
         let sampleID = UUID()
+        XCTAssertEqual(model.nextHealthSyncVersion(for: checkIn.id), 1)
 
         model.updateHealthSync(for: checkIn.id, state: .synced, sampleID: sampleID)
+        model.updateHealthSync(for: checkIn.id, state: .failed)
+        XCTAssertEqual(model.nextHealthSyncVersion(for: checkIn.id), 2)
 
         let restored = SelfCareModel(defaults: defaults)
-        XCTAssertEqual(restored.checkIns.first?.healthSyncState, .synced)
+        XCTAssertEqual(restored.checkIns.first?.healthSyncState, .failed)
         XCTAssertEqual(restored.checkIns.first?.healthSampleID, sampleID)
+        XCTAssertEqual(restored.checkIns.first?.healthSyncVersion, 2)
     }
 
-    func testExportAndResetAreExplicitAndComplete() {
+    func testHealthKitUnavailableDoesNotBlockLocalCheckIn() async {
+        let defaults = freshDefaults()
+        let healthKit = HealthKitManager(defaults: defaults, healthDataAvailability: { false })
+        let model = SelfCareModel(defaults: defaults)
+        let coordinator = CheckInCompletionCoordinator()
+
+        XCTAssertEqual(healthKit.status, .unavailable)
+        await healthKit.requestAuthorizationAndRefresh()
+        XCTAssertEqual(healthKit.status, .unavailable)
+
+        let didSave = await coordinator.save(
+            model: model,
+            healthKit: healthKit,
+            entryPoint: .normalApplication
+        )
+
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(model.checkIns.count, 1)
+        XCTAssertEqual(model.checkIns.first?.healthSyncState, .notRequested)
+    }
+
+    func testHealthAssociationsOnlyUseMeaningfulCategoryMatches() throws {
+        guard #available(iOS 18.0, *) else { throw XCTSkip("State of Mind is available on iOS 18 and later.") }
+        let model = SelfCareModel(defaults: freshDefaults())
+        model.setManualValue(35, for: .exercise)
+        model.setManualValue(7, for: .sleep)
+        let work = try model.addCategory(named: "Work")
+        let yoga = try model.addCategory(named: "Yoga")
+        let unrelated = try model.addCategory(named: "Unrelated")
+        model.toggleCustomCategory(work.id)
+        model.toggleCustomCategory(yoga.id)
+        model.toggleCustomCategory(unrelated.id)
+        let checkIn = try model.logCheckIn()
+
+        let associations = HealthKitManager.stateOfMindAssociations(for: checkIn)
+
+        XCTAssertTrue(associations.contains(.fitness))
+        XCTAssertTrue(associations.contains(.health))
+        XCTAssertTrue(associations.contains(.work))
+        XCTAssertEqual(associations.count, Set(associations).count)
+        XCTAssertFalse(associations.contains(.selfCare))
+    }
+
+    func testDeletingCheckInPreservesOtherHistory() throws {
+        let model = SelfCareModel(defaults: freshDefaults())
+        let first = try model.logCheckIn(at: Date(timeIntervalSince1970: 100))
+        let second = try model.logCheckIn(at: Date(timeIntervalSince1970: 200))
+
+        XCTAssertEqual(try model.deleteCheckIn(id: first.id), first)
+        XCTAssertEqual(model.checkIns, [second])
+    }
+
+    func testCheckInSkipsHealthWhenMoodExportIsOff() async {
+        let defaults = freshDefaults()
+        let model = SelfCareModel(defaults: defaults)
+        let healthKit = HealthKitManager(defaults: defaults)
+        let coordinator = CheckInCompletionCoordinator()
+
+        XCTAssertFalse(healthKit.isMoodExportEnabled)
+        let didSave = await coordinator.save(
+            model: model,
+            healthKit: healthKit,
+            entryPoint: .normalApplication
+        )
+        XCTAssertTrue(didSave)
+        XCTAssertEqual(model.checkIns.first?.healthSyncState, .notRequested)
+        XCTAssertEqual(coordinator.healthDetail, "Saved on this iPhone.")
+    }
+
+    func testExportAndResetAreExplicitAndComplete() throws {
         let defaults = freshDefaults()
         let model = SelfCareModel(defaults: defaults)
         model.setMood(72)
-        model.logCheckIn(at: Date(timeIntervalSince1970: 1_700_000_000))
+        try model.logCheckIn(at: Date(timeIntervalSince1970: 1_700_000_000))
 
         let csv = model.exportCSV()
         XCTAssertTrue(csv.hasPrefix("date,mood_value"))
@@ -201,18 +274,113 @@ final class SelfCareModelTests: XCTestCase {
 
         XCTAssertTrue(model.checkIns.isEmpty)
         XCTAssertEqual(model.moodValue, 53)
-        XCTAssertFalse(model.hasCompletedOnboarding)
         XCTAssertNil(defaults.data(forKey: "selfCare.state.v1"))
     }
 
-    func testOnboardingChoicePersists() {
+    func testCustomCategoriesValidatePersistAndSnapshotHistory() throws {
         let defaults = freshDefaults()
         let model = SelfCareModel(defaults: defaults)
-        XCTAssertFalse(model.hasCompletedOnboarding)
+        let category = try model.addCategory(named: "  Journaling  ")
 
-        model.completeOnboarding()
+        XCTAssertEqual(category.name, "Journaling")
+        XCTAssertThrowsError(try model.addCategory(named: "journaling")) { error in
+            XCTAssertEqual(error as? SelfCareModelError, .duplicateCategoryName)
+        }
+        XCTAssertThrowsError(try model.addCategory(named: "  ")) { error in
+            XCTAssertEqual(error as? SelfCareModelError, .emptyCategoryName)
+        }
 
-        XCTAssertTrue(SelfCareModel(defaults: defaults).hasCompletedOnboarding)
+        model.toggleCustomCategory(category.id)
+        let checkIn = try model.logCheckIn()
+        try model.deleteCategory(id: category.id)
+
+        XCTAssertEqual(checkIn.customCategoryNames?[category.id], "Journaling")
+        XCTAssertTrue(checkIn.completedCustomCategoryIDs?.contains(category.id) == true)
+        XCTAssertTrue(model.customCategories.isEmpty)
+
+        let restored = SelfCareModel(defaults: defaults)
+        XCTAssertEqual(restored.checkIns.first?.customCategoryNames?[category.id], "Journaling")
+    }
+
+    func testOptionalHealthMappingUsesOnlySupportedTypes() throws {
+        let model = SelfCareModel(defaults: freshDefaults())
+        let category = try model.addCategory(named: "Morning walk", healthDataType: .exerciseTime)
+
+        XCTAssertEqual(category.source, .appleHealth)
+        XCTAssertEqual(category.linkedHealthDataType, .exerciseTime)
+
+        model.updateHealthValues(exerciseMinutes: 15, sleepHours: nil)
+        XCTAssertTrue(model.isCustomCategoryCompleted(category))
+    }
+
+    func testCustomCategoryCanBeSelectedAndUnselected() throws {
+        let model = SelfCareModel(defaults: freshDefaults())
+        let category = try model.addCategory(named: "Yoga")
+
+        model.toggleCustomCategory(category.id)
+        XCTAssertTrue(model.isCustomCategoryCompleted(category))
+
+        model.toggleCustomCategory(category.id)
+        XCTAssertFalse(model.isCustomCategoryCompleted(category))
+    }
+
+    func testHealthLinkedCustomCategoryCanBeManuallyUnselected() throws {
+        let defaults = freshDefaults()
+        let model = SelfCareModel(defaults: defaults)
+        let category = try model.addCategory(named: "Yoga", healthDataType: .exerciseTime)
+        model.updateHealthValues(exerciseMinutes: 15, sleepHours: nil)
+        XCTAssertTrue(model.isCustomCategoryCompleted(category))
+
+        model.toggleCustomCategory(category.id)
+        XCTAssertFalse(model.isCustomCategoryCompleted(category))
+
+        let restored = SelfCareModel(defaults: defaults)
+        restored.updateHealthValues(exerciseMinutes: 15, sleepHours: nil)
+        XCTAssertFalse(restored.isCustomCategoryCompleted(category))
+
+        restored.toggleCustomCategory(category.id)
+        XCTAssertTrue(restored.isCustomCategoryCompleted(category))
+    }
+
+    func testDailyStatusUsesLocalCalendarDayAndAllowsMultipleEntries() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "America/New_York"))
+        let yesterday = try XCTUnwrap(
+            calendar.date(from: DateComponents(year: 2026, month: 7, day: 22, hour: 23, minute: 55))
+        )
+        let today = try XCTUnwrap(
+            calendar.date(from: DateComponents(year: 2026, month: 7, day: 23, hour: 0, minute: 5))
+        )
+        let model = SelfCareModel(defaults: freshDefaults())
+
+        try model.logCheckIn(at: yesterday)
+        XCTAssertFalse(model.hasCheckedInToday(at: today, calendar: calendar))
+
+        try model.logCheckIn(at: today)
+        try model.logCheckIn(at: today.addingTimeInterval(60))
+        XCTAssertTrue(model.hasCheckedInToday(at: today, calendar: calendar))
+        XCTAssertEqual(model.checkIns.count, 3)
+    }
+
+    func testSnackbarStateMachine() {
+        XCTAssertEqual(SnackbarPresentationState.full.afterOutsideTap, .compact)
+        XCTAssertEqual(SnackbarPresentationState.compact.afterOutsideTap, .minimal)
+        XCTAssertEqual(SnackbarPresentationState.minimal.afterOutsideTap, .minimal)
+        XCTAssertEqual(SnackbarPresentationState.minimal.afterSnackbarTap, .full)
+    }
+
+    func testReminderComponentsContainOnlyLocalHourAndMinute() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "America/New_York"))
+        let date = try XCTUnwrap(
+            calendar.date(from: DateComponents(year: 2026, month: 7, day: 23, hour: 8, minute: 35))
+        )
+
+        let components = CheckInReminderService.reminderDateComponents(for: date)
+
+        XCTAssertEqual(components.hour, 8)
+        XCTAssertEqual(components.minute, 35)
+        XCTAssertNil(components.day)
     }
 
     func testMoodMapsToHealthKitValence() {

@@ -1,9 +1,18 @@
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @Bindable var model: SelfCareModel
     @Bindable var healthKit: HealthKitManager
+    @Bindable var reminders: CheckInReminderService
+    @Environment(\.openURL) private var openURL
     @State private var isConfirmingReset = false
+    @State private var editingCategory: SelfCareCategory?
+    @State private var categoryPendingDeletion: SelfCareCategory?
+    @State private var categoryErrorMessage: String?
+    @State private var isUpdatingMoodExport = false
+    @State private var isResettingData = false
+    @State private var resetErrorMessage: String?
 
     var body: some View {
         Form {
@@ -48,6 +57,68 @@ struct SettingsView: View {
             }
 
             Section {
+                Picker(
+                    "Check-in reminder",
+                    selection: Binding(
+                        get: { reminders.openingPreference },
+                        set: { preference in
+                            Task {
+                                await reminders.selectPreference(preference)
+                            }
+                        }
+                    )
+                ) {
+                    Text("Open manually").tag(CheckInOpeningPreference.manual)
+                    Text("Remind me daily").tag(CheckInOpeningPreference.dailyReminder)
+                }
+                .pickerStyle(.segmented)
+
+                if reminders.openingPreference == .dailyReminder {
+                    DatePicker(
+                        "Reminder time",
+                        selection: Binding(
+                            get: { reminders.reminderTime },
+                            set: { date in
+                                Task {
+                                    await reminders.setReminderTime(date)
+                                }
+                            }
+                        ),
+                        displayedComponents: .hourAndMinute
+                    )
+                }
+
+                Label(reminders.authorizationDescription, systemImage: reminderStatusSymbol)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                if let errorMessage = reminders.errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if reminders.canOpenSystemSettings {
+                    Button("Open notification settings", systemImage: "gear") {
+                        guard let url = URL(string: UIApplication.openNotificationSettingsURLString) else {
+                            return
+                        }
+                        openURL(url)
+                    }
+                }
+            } header: {
+                Text("Check-in reminder")
+            } footer: {
+                Text(
+                    reminders.openingPreference == .manual
+                        ? "Self Care will not schedule a notification. Open the app whenever you choose."
+                        : "iOS will show one daily notification at your selected local time. "
+                            + "The app opens only when you tap it."
+                )
+            }
+
+            Section {
                 ForEach(FactorKey.allCases) { factor in
                     Button {
                         model.editingFactor = factor
@@ -84,6 +155,73 @@ struct SettingsView: View {
             }
 
             Section {
+                if model.customCategories.isEmpty {
+                    Text("No custom categories yet.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(model.customCategories) { category in
+                        Button {
+                            editingCategory = category
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: category.linkedHealthDataType?.symbol ?? "heart")
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 24)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(category.name)
+                                        .foregroundStyle(.primary)
+                                    Text(
+                                        category.source == .appleHealth
+                                            ? "Apple Health · \(category.linkedHealthDataType?.title ?? "Unavailable type")"
+                                            : "Manual"
+                                    )
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .accessibilityLabel(
+                            "\(category.name), "
+                                + (category.source == .appleHealth ? "connected to Apple Health" : "manual")
+                        )
+                        .accessibilityHint("Opens category settings")
+                        .swipeActions {
+                            Button("Delete", role: .destructive) {
+                                categoryPendingDeletion = category
+                            }
+                        }
+                    }
+                }
+
+                Button("Add category", systemImage: "plus") {
+                    editingCategory = SelfCareCategory(
+                        id: UUID(),
+                        name: "",
+                        source: .manual,
+                        healthDataTypeIdentifier: nil,
+                        isUserCreated: true
+                    )
+                }
+
+                if let categoryErrorMessage {
+                    Text(categoryErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            } header: {
+                Text("Custom categories")
+            } footer: {
+                Text("Renaming or deleting a category does not change historical check-in snapshots.")
+            }
+
+            Section {
                 HStack(spacing: 12) {
                     Image(systemName: healthKit.status.symbol)
                         .foregroundStyle(healthStatusColor)
@@ -114,6 +252,26 @@ struct SettingsView: View {
                 }
                 .disabled(healthKit.isLoading || healthKit.status == .unavailable)
 
+                Toggle(
+                    "Save check-in mood to State of Mind",
+                    isOn: Binding(
+                        get: { healthKit.isMoodExportEnabled },
+                        set: { enabled in
+                            isUpdatingMoodExport = true
+                            Task {
+                                await healthKit.setMoodExportEnabled(enabled)
+                                isUpdatingMoodExport = false
+                            }
+                        }
+                    )
+                )
+                .disabled(isUpdatingMoodExport || healthKit.status == .unavailable)
+
+                if isUpdatingMoodExport {
+                    ProgressView("Updating mood export…")
+                        .font(.footnote)
+                }
+
                 if let errorMessage = healthKit.errorMessage {
                     Text(errorMessage)
                         .font(.footnote)
@@ -123,16 +281,25 @@ struct SettingsView: View {
                 Text("Apple Health")
             } footer: {
                 Text(
-                    "Self Care reads Exercise Time and Sleep Analysis. When you log a check-in, it can write "
-                        + "the mood to State of Mind. The full check-in history stays in this app."
+                    "Exercise Time and Sleep Analysis access is requested only when you connect those categories. "
+                        + "Mood export requests separate State of Mind access only when you turn it on."
                 )
             }
 
             Section {
+                if let privacyPolicyURL = AppStoreLinks.privacyPolicyURL {
+                    Link(destination: privacyPolicyURL) {
+                        Label("Privacy policy online", systemImage: "arrow.up.right.square")
+                    }
+                } else {
+                    Label("Online privacy policy URL not configured", systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.secondary)
+                }
+
                 NavigationLink {
                     PrivacyPolicyView()
                 } label: {
-                    Label("Privacy", systemImage: "hand.raised.fill")
+                    Label("Privacy details", systemImage: "hand.raised.fill")
                 }
 
                 ShareLink(
@@ -146,12 +313,18 @@ struct SettingsView: View {
                 Button("Reset Self Care data", systemImage: "trash", role: .destructive) {
                     isConfirmingReset = true
                 }
+                .disabled(isResettingData)
+
+                if isResettingData {
+                    ProgressView("Removing saved data…")
+                }
             } header: {
                 Text("Privacy & data")
             } footer: {
                 Text(
-                    "Export only shares data when you choose a destination. Reset removes Self Care’s local "
-                        + "settings and check-in history; it does not delete entries already saved in Apple Health."
+                    "Export only shares data when you choose a destination. Reset removes local settings and "
+                        + "check-in history, plus Self Care-authored State of Mind entries when HealthKit allows it. "
+                        + "Health permissions remain controlled in iOS Settings."
                 )
             }
 
@@ -169,14 +342,55 @@ struct SettingsView: View {
             titleVisibility: .visible
         ) {
             Button("Reset all data", role: .destructive) {
-                model.resetAllData()
+                resetAllData()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(
-                "This permanently removes local check-ins and settings from this iPhone. "
-                    + "Apple Health entries are not changed."
+                "This removes local check-ins, preferences, and Self Care-authored State of Mind entries. "
+                    + "If HealthKit cannot remove its entries, the local reset will be canceled."
             )
+        }
+        .sheet(item: $editingCategory) { category in
+            CategoryEditorView(
+                model: model,
+                healthKit: healthKit,
+                category: model.customCategories.contains(where: { $0.id == category.id }) ? category : nil
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .confirmationDialog(
+            "Delete \(categoryPendingDeletion?.name ?? "this category")?",
+            isPresented: Binding(
+                get: { categoryPendingDeletion != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        categoryPendingDeletion = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete category", role: .destructive) {
+                deletePendingCategory()
+            }
+            Button("Cancel", role: .cancel) {
+                categoryPendingDeletion = nil
+            }
+        } message: {
+            Text("The category will be removed from future check-ins. Historical records will be preserved.")
+        }
+        .task {
+            await reminders.refreshAuthorizationStatus()
+        }
+        .alert("Couldn’t reset Self Care", isPresented: Binding(
+            get: { resetErrorMessage != nil && !isResettingData },
+            set: { if !$0 { resetErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { resetErrorMessage = nil }
+        } message: {
+            Text(resetErrorMessage ?? "Your local data was kept.")
         }
     }
 
@@ -194,6 +408,45 @@ struct SettingsView: View {
         return "\(version) (\(build))"
     }
 
+    private var reminderStatusSymbol: String {
+        switch reminders.authorizationStatus {
+        case .authorized, .provisional, .ephemeral: "bell.badge.fill"
+        case .denied: "bell.slash.fill"
+        case .notDetermined: "bell"
+        @unknown default: "questionmark.circle"
+        }
+    }
+
+    private func deletePendingCategory() {
+        guard let category = categoryPendingDeletion else { return }
+        do {
+            try model.deleteCategory(id: category.id)
+            categoryErrorMessage = nil
+        } catch {
+            categoryErrorMessage = error.localizedDescription
+        }
+        categoryPendingDeletion = nil
+    }
+
+    private func resetAllData() {
+        let exportedCheckIns = model.checkIns.filter { $0.healthSyncState == .synced }
+        isResettingData = true
+        resetErrorMessage = nil
+        Task {
+            do {
+                for checkIn in exportedCheckIns {
+                    try await healthKit.deleteCheckInMood(for: checkIn.id)
+                }
+                model.resetAllData()
+                healthKit.resetPreferences()
+                await reminders.resetPreferences()
+            } catch {
+                resetErrorMessage = "Local data was kept. Couldn’t remove an Apple Health entry: \(error.localizedDescription)"
+            }
+            isResettingData = false
+        }
+    }
+
     private func syncHealth(requestAuthorization: Bool) {
         Task {
             if requestAuthorization {
@@ -206,5 +459,22 @@ struct SettingsView: View {
                 sleepHours: healthKit.sleepHours
             )
         }
+    }
+}
+
+private enum AppStoreLinks {
+    // Replace with the hosted, public HTTPS policy URL before release.
+    static let privacyPolicyURLString = "REPLACE_WITH_PUBLIC_PRIVACY_POLICY_HTTPS_URL"
+
+    static var privacyPolicyURL: URL? {
+        guard
+            let url = URL(string: privacyPolicyURLString),
+            url.scheme == "https",
+            url.host?.isEmpty == false,
+            !privacyPolicyURLString.contains("REPLACE_WITH")
+        else {
+            return nil
+        }
+        return url
     }
 }

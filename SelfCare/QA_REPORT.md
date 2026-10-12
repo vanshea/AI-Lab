@@ -1,152 +1,92 @@
-# Self Care 1.0 QA Report
-
-**Branch:** `release/1.0-qa`
-**Candidate:** `1.0 (1)` · `com.vansedita.SelfCare` · iPhone · iOS 17+
-**QA date:** July 22, 2026
-**Verdict:** **DO NOT SHIP YET** — the app code is release-candidate quality, but the public privacy/support URLs and signed real-device/TestFlight gates are still open.
+# Self Care 1.0 — QA and release-readiness report
 
 ## Architecture summary
 
-- `SelfCareApp` creates one `@MainActor` observable `SelfCareModel` and one `HealthKitManager`, then injects both into a SwiftUI `NavigationStack`.
-- `RootView` owns app-level routing: check-in, factor editor sheets, first-run onboarding, and foreground refresh. It resets daily inputs when the user's local calendar day changes and refreshes HealthKit only after permission has previously been requested.
-- `SelfCareModel` is the source of truth for theme, mood, the three fixed daily factors, onboarding state, and check-in history. A Codable state blob is persisted in this app's `UserDefaults`. Health-derived values are transient. Corrupt state recovers to safe defaults and displays a recovery message.
-- The product intentionally supports multiple **momentary** check-ins per day. Records are immutable snapshots and sort newest-first. The three factors are fixed product concepts; the editor changes their input mode/value, not factor identity, so historical references cannot be orphaned by rename/delete.
-- `HealthKitManager` is `@MainActor`. It asks for Health access only from user action, reads Apple Exercise Time and asleep Sleep Analysis intervals, and on iOS 18+ writes mood as `HKStateOfMind(kind: .momentaryEmotion, associations: [.selfCare])`. A local check-in succeeds even when HealthKit is unavailable or denied.
-- Settings routes to History and Privacy and exposes factor setup, optional Apple Health, CSV export, reset, and the runtime version/build.
+1. The app is a single-target SwiftUI iPhone app with an iOS 17.0 deployment target.
+2. `SelfCareApp` owns the observable model, HealthKit manager, and local reminder service.
+3. `RootView` refreshes the local day and previously requested Health data on launch and foreground return.
+4. `CheckInView` presents the mood slider, daily factors, custom categories, and full/compact/minimal panel states.
+5. `SelfCareModel` stores Codable state in app-scoped `UserDefaults`; there is no account or developer backend.
+6. Check-ins are immutable snapshots; multiple momentary entries on one local calendar day are allowed.
+7. Factors are manual or read-only HealthKit values: Apple Exercise Time (minutes) and asleep-stage sleep (hours).
+8. `HealthKitManager` owns optional authorization, sample queries, and iOS 18+ State of Mind export.
+9. Settings contains reminders, appearance, factor setup, privacy details, CSV export, reset, and Health controls.
+10. The app target bundles `PrivacyInfo.xcprivacy`, the HealthKit entitlement, `Assets.xcassets`, and a generated launch screen.
 
-## Environment and proof
+## Baseline before this turn’s changes
 
-| Item | Result |
+The checkout already contained the prior requested icon, check-in, factor-toggle, and reminder work. Those pre-existing edits were preserved on the requested `release/1.0-prep` branch.
+
+| Check | Result |
 |---|---|
-| macOS | 26.5.2 (25F84) |
-| Xcode | 26.6 (17F113) |
-| Swift | 6.3.3; project language mode Swift 6 with strict concurrency complete |
-| SwiftLint | Official portable 0.65.0 used from `/tmp`; 0 violations in 14 files |
-| Release simulator build | Succeeded |
-| iPhone simulator tests | 17 executed, 0 failures |
-| Release static analysis, physical iOS SDK | Succeeded |
-| Unsigned Release archive, physical iOS SDK | Succeeded at `/tmp/SelfCareQA-ReleaseFinal.xcarchive` |
-| Visual QA | iPhone 17 Pro and 17 Pro Max, iOS 26.5; onboarding, core check-in, Settings, History, Privacy, light/dark |
-| Accessibility inspection | Native slider value/adjustability, factor selected states, coherent History row, meaningful Settings controls verified |
+| Xcode / SDK | Xcode 27.0 (27A266a); iOS 27.0 SDK |
+| Shared scheme | `SelfCare.xcodeproj/xcshareddata/xcschemes/SelfCare.xcscheme` exists |
+| Debug simulator build | Passed; 1 Xcode App Intents metadata-extractor warning |
+| Release simulator build | Passed; 1 Xcode App Intents metadata-extractor warning |
+| Simulator tests | 24 passed, 0 failed |
+| Warning interpretation | The sole warning is Xcode’s “Metadata extraction skipped, no AppIntents.framework dependency found”; there are no app-owned Swift warnings in these logs. |
 
-Representative real output:
+The first sandboxed compiler invocation could not start Swift’s Observation macro plug-in. Re-running the same build with the necessary Xcode tool access succeeded; this was an execution restriction, not a source diagnostic.
 
-```text
-Done linting! Found 0 violations, 0 serious in 14 files.
-Executed 17 tests, with 0 failures (0 unexpected) in 0.044 (0.049) seconds
-** TEST SUCCEEDED **
-** ANALYZE SUCCEEDED **
-** ARCHIVE SUCCEEDED **
-```
+## Changes and after-results
 
-The build/analyze/archive logs contain one Xcode 26.6 toolchain notice:
+- Added explicit portrait-only orientation and Release hardening (`VALIDATE_PRODUCT`, assertions off, `-O`, standard warning flags, and Swift warnings-as-errors).
+- Kept bundle ID, team, automatic signing, iOS 17.0 deployment target, iPhone-only family, and HealthKit capability unchanged.
+- Confirmed the built product’s `Info.plist` contains display name `Self Care`, version `1.0`, build `4`, `ITSAppUsesNonExemptEncryption = false`, both Health usage strings, a generated launch screen, and only portrait iPhone orientation.
+- Confirmed `PrivacyInfo.xcprivacy` is valid, bundled, declares UserDefaults reason `CA92.1`, has tracking off, and has no collected-data declarations. Source inspection found only app-scoped `UserDefaults` among the required-reason API families.
+- Added stable HealthKit sync identifiers and increasing sync versions for app-written State of Mind samples; added deliberate factor/category association mapping and deletion when a locally stored exported entry is deleted or reset.
+- Added a HealthKit availability seam and tests for the unavailable-device path; local check-ins still succeed in that path.
+- Exposed the unconfigured hosted privacy-policy URL in Settings rather than inventing a URL.
 
-```text
-warning: Metadata extraction skipped. No AppIntents.framework dependency found.
-```
-
-This is emitted by Xcode's `appintentsmetadataprocessor` because the app correctly has no App Intents dependency. There are no Swift compiler, deprecation, asset-catalog, linker, analyzer, or strict-concurrency warnings. Adding an unused framework merely to silence the extractor would be the wrong fix.
+| Check | Result |
+|---|---|
+| Debug simulator build | Passed; 1 Xcode App Intents metadata-extractor warning |
+| Release simulator build | Passed; 1 Xcode App Intents metadata-extractor warning |
+| Simulator tests | 27 passed, 0 failed; 2 copies of the same Xcode metadata-extractor warning (app and test products) |
+| Release settings | `VALIDATE_PRODUCT=YES`, `ENABLE_NS_ASSERTIONS=NO`, `SWIFT_OPTIMIZATION_LEVEL=-O`, `SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`, complete concurrency checking |
+| Unsigned Release archive | `ARCHIVE SUCCEEDED`; final archive at `/tmp/SelfCare-final.xcarchive` |
+| Archive contents | App identity, privacy manifest, and generated Info.plist keys verified. Archive has no distribution signature/profile and was not Organizer-validated or uploaded. |
 
 ## Findings
 
-### 🔴 Blockers — open
+### 🔴 Blockers
 
-1. **Public privacy policy and support endpoints are not supplied** — `PRIVACY_POLICY.md:25`, `SelfCare/Views/SettingsView.swift:132`
-   **Why it matters:** A public privacy-policy URL is required for an iOS App Store submission, and HealthKit review expects the policy to be easy to reach. The app currently has an honest in-app policy, but no developer-owned HTTPS destination or monitored support contact was provided. Inventing either would be misleading.
-   **Exact fix:** Publish `PRIVACY_POLICY.md` at a stable public HTTPS URL; replace its final placeholder paragraph with the monitored support email or page; add Privacy Policy and Support links in Settings; enter the same URLs in App Store Connect. Verify both in a clean production build.
+1. **Hosted privacy policy and monitored support contact are still placeholders** — `SelfCare/Views/SettingsView.swift` and `PRIVACY_POLICY.md`.
+   **User/review impact:** App Store Connect requires a public privacy-policy URL for this HealthKit app; the Settings row currently states that the online URL is not configured. A contact placeholder is not a support channel.
+   **Fix:** Host the final policy on public HTTPS, replace `AppStoreLinks.privacyPolicyURLString`, add the real support contact, and verify both from a device.
 
-2. **Signed distribution validation, TestFlight, and final real-device acceptance are incomplete** — `ExportOptions.plist:1`
-   **Why it matters:** The unsigned archive proves physical-SDK compilation, but cannot prove the distribution certificate/profile, App Store Connect entitlements, server-side validation, or real Health database behavior. Shipping without this gate risks upload rejection or a broken permission flow.
-   **Exact fix:** Follow `RELEASE_CHECKLIST.md`: make a signed Organizer archive, Validate App, upload to TestFlight, then complete the physical-iPhone matrix before selecting Submit for Review.
+2. **Health-to-app reconciliation is not implemented** — `SelfCare/Services/HealthKitManager.swift` and `SelfCare/Views/RootView.swift`.
+   **User impact:** Self Care can upsert and delete its own State of Mind samples, but does not observe edits/deletions performed in Apple Health. The local history can therefore still say “Saved to Apple Health” after a person deletes the Health entry.
+   **Fix:** Decide whether local history is authoritative or mirrored. If mirrored, add a State of Mind anchored query scoped to Self Care’s source, persist its anchor, process deletion events without interpreting hidden read denial as deletion, and test on a physical iPhone. No unsupported iOS 27 API was invented.
 
-### 🟠 Critical — open release verification
+3. **The archive is unsigned and distribution validation remains outstanding** — `/tmp/SelfCare-final.xcarchive` and `RELEASE_CHECKLIST.md`.
+   **User/review impact:** The unsigned archive proves compilation and package structure only; it cannot prove App Store signing, provisioning, or distribution validation.
+   **Fix:** In Xcode Organizer, create/validate a signed archive with the existing automatic-signing team and HealthKit capability. Do not upload until validation passes.
 
-1. **Every real-device HealthKit authorization branch still needs hands-on verification** — `SelfCare/Services/HealthKitManager.swift:84`, `SelfCare/Services/HealthKitManager.swift:133`
-   **Why it matters:** Simulator/static proof cannot fully reproduce real Health permissions or the user's Health database. Read denial is intentionally opaque, and State of Mind write requires iOS 18+.
-   **Exact fix:** On iOS 17 and current iOS hardware, test unavailable/no samples, allow, deny, later revoke, and retry. Confirm local logging always works; iOS 17 reports Health mood export unavailable; iOS 18+ writes exactly one State of Mind sample; denial explains the Settings path.
+4. **Required HealthKit checks need a physical device** — `TESTING_ON_IPHONE.md`.
+   **User impact:** Simulator unit tests cannot prove prompts, Apple Health sample appearance/source, permission revocation, or delete/update behavior. No physical-device HealthKit matrix was run in this session.
+   **Fix:** Complete the real-device matrix in `HUMAN_TODO.md` on iOS 17 and current public iOS 27, including the 27.2 beta only if the owner chooses to test it.
 
-2. **Final assistive-technology/device matrix is not yet signed off by a human** — `SelfCare/Components/MoodSlider.swift:50`, `SelfCare/Components/FactorChip.swift:25`
-   **Why it matters:** Programmatic accessibility inspection verified semantics, but release quality requires listening to the entire flow with VoiceOver and checking AX5, Bold Text, Reduce Motion, and both appearances on hardware.
-   **Exact fix:** Run the accessibility section in `TESTING_ON_IPHONE.md`; record device/OS and pass/fail in the release checklist. Fix any clipping, confusing speech, or unreachable gesture before shipping.
+### 🟠 Critical / 🟡 Major follow-ups
 
-### 🟠 Critical — resolved
+5. **State of Mind labels remain intentionally empty** — `SelfCare/Services/HealthKitManager.swift`.
+   **User impact:** The slider captures valence, not a specific emotion; mapping “Low/Good/Great” to Apple’s emotion labels would invent feelings for the person.
+   **Fix:** Keep labels empty for 1.0 or approve an explicit emotion-choice control and map only the user’s own selection. Associations are limited to meaningful matches and documented in `HEALTH_INTEGRATION.md`.
 
-1. **Corrupt persistence could not explain recovery** — `SelfCare/Models/SelfCareModel.swift:196`
-   **User impact:** A damaged or incompatible state must never crash or silently leave a blank app.
-   **Fix:** Decode is guarded; corruption restores safe defaults, records the current local day, reopens onboarding, and exposes a dismissible recovery message. Covered by automated test.
+6. **The full visual/accessibility screenshot matrix was not captured from this build** — `AppStore/Screenshots/6.9-inch/01-welcome-dark.png`.
+   **User impact:** Existing 6.9-inch PNGs meet current pixel/alpha requirements, but they predate this build and do not demonstrate smallest/largest iPhone, AX5, or all five views in both appearances. Simulator service became unavailable after test execution.
+   **Fix:** Capture and inspect the current build at default and AX5 text sizes on the smallest and largest available iPhone simulators, in light and dark. Replace the submission set only after visual review.
 
-2. **Daily state did not have a robust local-calendar rollover contract** — `SelfCare/Models/SelfCareModel.swift:228`, `SelfCare/Views/RootView.swift:40`
-   **User impact:** Mood/factors could appear to belong to the wrong day after midnight, DST, travel, or foregrounding.
-   **Fix:** Persist a local year/month/day key, calculate with the user's current Calendar/start-of-day semantics, reset only daily inputs, preserve history/preferences, and refresh on foreground. DST and travel cases are tested.
+7. **The HealthKit unavailable seam is tested, not a real denied-read state** — `SelfCareTests/SelfCareModelTests.swift`.
+   **User impact:** HealthKit intentionally hides read denial; a no-data result can mean either denial or no samples. The UI reports “No readable data” and preserves manual/local use, but a physical denial/revocation test remains essential.
+   **Fix:** Run allow, deny, partial allow, and revoke scenarios on device and verify the current no-data explanation is understandable.
 
-3. **State of Mind denial needed an explicit error** — `SelfCare/Services/HealthKitManager.swift:139`
-   **User impact:** A user could believe the mood reached Apple Health when write permission was off.
-   **Fix:** Request only when not determined, require `.sharingAuthorized`, throw a localized denial with the Settings recovery path, and retain the local record with failed sync status.
+## Verified versus not verified
 
-4. **Custom mood slider exposed an invalid internal accessibility value** — `SelfCare/Components/MoodSlider.swift:50`
-   **User impact:** VoiceOver inspection exposed `NaN` in addition to the semantic value.
-   **Fix:** Use a native `Slider` accessibility representation with bounds, step-five adjustment, label, hint, and spoken semantic/numeric value. Inspector now reports `Value: 53; Details: Good, 53 out of 100`.
+**Verified locally:** project and shared scheme load; Debug and Release simulator builds pass; 27 unit tests pass; Release settings resolve as intended; built Info.plist and privacy manifest are present and correct; source entitlement contains only HealthKit; Xcode project enables the HealthKit capability; no tracked `xcuserdata`/`.xcuserstate`; `.gitignore` covers Xcode user state; the App Store icon target is `SelfCareColorIcon` and the catalog builds.
 
-5. **Factor selection relied too heavily on color and small chip height** — `SelfCare/Components/FactorChip.swift:17`
-   **User impact:** Low-vision, color-blind, motor, and VoiceOver users could miss state or struggle to activate a chip.
-   **Fix:** Add an explicit checkmark, 44pt minimum height, button/selected traits, Goal met/not met value, edit action, and adaptive horizontal/vertical wrapping.
+**Not verified:** signed distribution/provisioning profile, App Store Connect processing/validation, hosted policy/support URLs, app-name availability, age-rating answers, HealthKit behavior on hardware, real app icon in Health data-source screens, screenshots from the final build at AX5/light/dark/small+large sizes, and Health-originated State of Mind edits/deletions.
 
-### 🟡 Major — resolved
+## Verdict
 
-1. **No first-run explanation before a sensitive-health feature** — `SelfCare/Views/RootView.swift:20`, `SelfCare/Views/WelcomeView.swift:3`
-   **User impact:** A cold launch gave no context for local privacy, optional Health access, or non-medical scope.
-   **Fix:** Added a polished, non-dismissible-without-action onboarding screen; Health permission remains user initiated later.
-
-2. **Accessibility text sizes could crowd the lock-screen composition** — `SelfCare/Views/CheckInView.swift:22`
-   **User impact:** AX-size text risked clipping the core action.
-   **Fix:** Accessibility sizes switch to a scrollable layout; all copy uses Dynamic Type styles and fixed-height content is avoided.
-
-3. **Motion and completion feedback needed platform preferences** — `SelfCare/Views/CheckInView.swift:29`
-   **User impact:** Logging lacked satisfying confirmation, while card animations could ignore motion sensitivity.
-   **Fix:** Add success sensory feedback and condition transitions/animations on Reduce Motion.
-
-4. **Privacy control was incomplete** — `SelfCare/Views/SettingsView.swift:132`, `SelfCare/Models/SelfCareModel.swift:350`
-   **User impact:** Users need to understand, export, and erase sensitive local wellbeing history.
-   **Fix:** Added in-app privacy disclosure, CSV export, destructive reset with explicit confirmation, and clear Apple Health deletion caveat. Public URLs remain Blocker 1.
-
-5. **Privacy manifest and export declaration were absent** — `SelfCare/PrivacyInfo.xcprivacy:1`, `SelfCare.xcodeproj/project.pbxproj:350`
-   **User impact:** App Store validation can reject a binary that uses required-reason APIs without a declaration or leave export compliance unanswered.
-   **Fix:** Ship `PrivacyInfo.xcprivacy` with UserDefaults reason `CA92.1`, no tracking/collection declarations, and `ITSAppUsesNonExemptEncryption = NO` in both app configurations.
-
-6. **Entitlements requested more than the app uses** — `SelfCare/SelfCare.entitlements:5`
-   **User impact:** Unnecessary health-record/background capabilities expand review and provisioning risk.
-   **Fix:** Entitlements now contain HealthKit only. Bundle ID, team ID, automatic signing style, and product identity were not changed.
-
-7. **History placement and card minimization did not match the requested information architecture** — `SelfCare/Views/SettingsView.swift:24`, `SelfCare/Views/CheckInView.swift:240`
-   **User impact:** Extra top-level controls crowded the core header.
-   **Fix:** History lives in Settings; the separate minimize button is gone; tapping the icon/name/goal area minimizes and leaves more room for the updated brand.
-
-### 🔵 Minor / polish — resolved or accepted
-
-1. **App Store screenshots were not submission-ready** — `AppStore/Screenshots/6.9-inch/01-welcome-dark.png:1`
-   **User impact:** Wrong dimensions or alpha can fail upload and inconsistent appearance weakens the product page.
-   **Fix:** Generated six consistent 1320×2868 screenshots across dark and light, then removed alpha from every PNG.
-
-2. **Style gate was missing** — `.swiftlint.yml:1`
-   **User impact:** Force unwraps, force casts, long lines, and accessibility image omissions can regress unnoticed.
-   **Fix:** Added a strict project configuration and ran official SwiftLint 0.65.0: 0 violations.
-
-3. **Xcode App Intents extractor warning** — `SelfCare.xcodeproj/project.pbxproj:1`
-   **User impact:** No in-app impact; it creates noise in an otherwise clean log.
-   **Disposition:** Accepted Xcode 26.6 toolchain exception. The app has no App Intents and should not link an unused framework. Recheck with the next stable Xcode and require all app-owned diagnostics to remain at zero.
-
-## Correctness decisions
-
-- **More than one check-in per day:** intentional. Each entry is a momentary mood snapshot, consistent with the HealthKit sample kind. Entries are not silently overwritten.
-- **Factors:** intentionally fixed to Exercise, Sleep, and Scrolling. `FactorEditorView` edits mode/value; it is not arbitrary CRUD. Historical snapshots therefore remain stable. Custom factor CRUD is a future product feature, not a 1.0 defect.
-- **State of Mind availability:** the pasted brief calls it iOS 17+, but the SDK API used by this project is available on iOS 18+. The code correctly guards iOS 18 and keeps all iOS 17 check-ins local.
-- **App Privacy label:** current code does not transmit user data to the developer or third parties. Under Apple's definition, on-device processing is not “collection,” so the accurate App Store Connect answer is **No, we do not collect data from this app**. HealthKit use is still disclosed in policy, review notes, usage strings, and UI.
-
-## Compliance references
-
-- [App privacy details and Apple's definition of collection](https://developer.apple.com/app-store/app-privacy-details/)
-- [Manage app privacy and required policy URL](https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy/)
-- [HealthKit user privacy](https://developer.apple.com/documentation/healthkit/protecting-user-privacy)
-- [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
-- [Required-reason API declarations](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api)
-- [Current screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/)
+**Do not ship yet.** Resolve the four 🔴 items above, complete the HealthKit device matrix, decide the one-way versus mirrored Health history boundary, and review fresh screenshots before submission.
