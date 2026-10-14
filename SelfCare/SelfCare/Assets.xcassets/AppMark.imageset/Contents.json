@@ -3,16 +3,6 @@
     {
       "filename" : "AppMark.png",
       "idiom" : "universal"
-    },
-    {
-      "appearances" : [
-        {
-          "appearance" : "luminosity",
-          "value" : "dark"
-        }
-      ],
-      "filename" : "AppMark-Dark.png",
-      "idiom" : "universal"
     }
   ],
   "info" : {

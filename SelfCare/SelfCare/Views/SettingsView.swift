@@ -14,6 +14,16 @@ struct SettingsView: View {
     @State private var isResettingData = false
     @State private var resetErrorMessage: String?
 
+    private let suggestedCategories = [
+        (name: "Connection", subtitle: "Moments of connection today"),
+        (name: "Creativity", subtitle: "Creative moments today"),
+        (name: "Diet", subtitle: "Nourishing choices today"),
+        (name: "Fun", subtitle: "Fun moments today"),
+        (name: "Intimacy", subtitle: "Moments of intimacy today"),
+        (name: "Mindfulness", subtitle: "Mindful moments today"),
+        (name: "Prayer", subtitle: "Prayer moments today")
+    ]
+
     var body: some View {
         Form {
             if let recoveryMessage = model.persistenceRecoveryMessage {
@@ -155,6 +165,57 @@ struct SettingsView: View {
             }
 
             Section {
+                ForEach(suggestedCategories, id: \.name) { suggested in
+                    let existing = model.customCategories.first {
+                        $0.name.localizedCaseInsensitiveCompare(suggested.name) == .orderedSame
+                    }
+
+                    HStack(spacing: 12) {
+                        if let iconName = SelfCareOptionIcon.assetName(for: suggested.name) {
+                            SelfCareOptionIcon(name: iconName, size: 24)
+                                .frame(width: 24)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(suggested.name)
+                            Text(suggested.subtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        if existing != nil {
+                            Label("Added", systemImage: "checkmark.circle.fill")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Button("Add") {
+                                do {
+                                    try model.addCategory(named: suggested.name)
+                                    categoryErrorMessage = nil
+                                } catch {
+                                    categoryErrorMessage = error.localizedDescription
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .accessibilityLabel("Add \(suggested.name) to daily factors")
+                        }
+                    }
+                }
+
+                if let categoryErrorMessage {
+                    Text(categoryErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            } header: {
+                Text("Suggested categories")
+            } footer: {
+                Text("Add only the categories you want to include in your daily check-in.")
+            }
+
+            Section {
                 if model.customCategories.isEmpty {
                     Text("No custom categories yet.")
                         .foregroundStyle(.secondary)
@@ -164,9 +225,14 @@ struct SettingsView: View {
                             editingCategory = category
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: category.linkedHealthDataType?.symbol ?? "heart")
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 24)
+                                if let iconName = SelfCareOptionIcon.assetName(for: category.name) {
+                                    SelfCareOptionIcon(name: iconName, size: 24)
+                                        .frame(width: 24)
+                                } else {
+                                    Image(systemName: category.linkedHealthDataType?.symbol ?? "heart")
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 24)
+                                }
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(category.name)

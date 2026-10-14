@@ -139,6 +139,14 @@ enum FactorKey: String, Codable, CaseIterable, Identifiable, Hashable {
         }
     }
 
+    var optionIconName: String {
+        switch self {
+        case .exercise: "OptionIcon-Exercise"
+        case .sleep: "OptionIcon-Sleep"
+        case .scrolling: "OptionIcon-NoScrolling"
+        }
+    }
+
     var unit: String {
         switch self {
         case .exercise, .scrolling: "min"

@@ -8,8 +8,7 @@ struct FactorChip: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: factor.symbol)
-                .accessibilityHidden(true)
+            SelfCareOptionIcon(name: factor.optionIconName)
 
             Text(factor.chipLabel)
                 .fixedSize(horizontal: false, vertical: true)
@@ -47,6 +46,37 @@ struct FactorChip: View {
             .accessibilityAction(named: "Edit \(factor.label)") {
                 onLongPress()
             }
+    }
+}
+
+struct SelfCareOptionIcon: View {
+    let name: String
+    var size: CGFloat = 22
+
+    var body: some View {
+        Image(name)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+            .accessibilityHidden(true)
+    }
+
+    static func assetName(for categoryName: String) -> String? {
+        let normalized = categoryName.lowercased().filter(\.isLetter)
+        return switch normalized {
+        case "connection", "connect": "OptionIcon-Connection"
+        case "creativity", "creative": "OptionIcon-Creativity"
+        case "diet", "nutrition", "food": "OptionIcon-Diet"
+        case "exercise", "excercise", "exercised", "yoga", "fitness": "OptionIcon-Exercise"
+        case "fun", "play": "OptionIcon-Fun"
+        case "intimacy": "OptionIcon-Intimacy"
+        case "mindful", "mindfulness", "meditation", "meditate": "OptionIcon-Mindful"
+        case "noscrolling", "scrolling", "socialmedia", "socialapps": "OptionIcon-NoScrolling"
+        case "prayer", "praying": "OptionIcon-Prayer"
+        case "sleep", "sleptwell", "rest": "OptionIcon-Sleep"
+        default: nil
+        }
     }
 }
 

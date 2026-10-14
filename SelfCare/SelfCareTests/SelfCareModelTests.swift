@@ -10,6 +10,17 @@ final class SelfCareModelTests: XCTestCase {
         XCTAssertEqual(SelfCareModel.moodLabel(for: 75), "Great")
     }
 
+    func testOptionIconNamesMapBuiltInAndCustomCategories() {
+        XCTAssertEqual(FactorKey.exercise.optionIconName, "OptionIcon-Exercise")
+        XCTAssertEqual(FactorKey.sleep.optionIconName, "OptionIcon-Sleep")
+        XCTAssertEqual(FactorKey.scrolling.optionIconName, "OptionIcon-NoScrolling")
+        XCTAssertEqual(SelfCareOptionIcon.assetName(for: "Connection"), "OptionIcon-Connection")
+        XCTAssertNil(SelfCareOptionIcon.assetName(for: "Creative time"))
+        XCTAssertEqual(SelfCareOptionIcon.assetName(for: "Mindful"), "OptionIcon-Mindful")
+        XCTAssertEqual(SelfCareOptionIcon.assetName(for: "No scrolling"), "OptionIcon-NoScrolling")
+        XCTAssertEqual(SelfCareOptionIcon.assetName(for: "Yoga"), "OptionIcon-Exercise")
+    }
+
     func testQuickToggleMovesExerciseAcrossGoal() {
         let model = SelfCareModel(defaults: freshDefaults())
 

@@ -119,6 +119,7 @@ struct CheckInView: View {
     @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 82
     @State private var completionCoordinator = CheckInCompletionCoordinator()
     @State private var isAddingCategory = false
+    @State private var editingCategory: SelfCareCategory?
     @State private var snackbarFrame: CGRect = .zero
     @AccessibilityFocusState private var isAddCategoryFocused: Bool
 
@@ -163,7 +164,7 @@ struct CheckInView: View {
         )
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $isAddingCategory) {
-            CategoryEditorView(model: model, healthKit: healthKit)
+            CategoryEditorView(model: model, healthKit: healthKit, category: editingCategory)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
@@ -249,7 +250,7 @@ struct CheckInView: View {
             categoryGrid
                 .padding(.top, 14)
 
-            Text("Tap to toggle · hold built-in categories to set up")
+            Text("Tap to toggle · hold any category to set up")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .padding(.top, 6)
@@ -404,6 +405,7 @@ struct CheckInView: View {
             }
 
             Button {
+                editingCategory = nil
                 isAddCategoryFocused = false
                 isAddingCategory = true
             } label: {
@@ -425,32 +427,50 @@ struct CheckInView: View {
 
     private func customCategoryChip(_ category: SelfCareCategory) -> some View {
         let isCompleted = model.isCustomCategoryCompleted(category)
-        return Button {
-            model.toggleCustomCategory(category.id)
-        } label: {
-            HStack(spacing: 6) {
+        return HStack(spacing: 6) {
+            if let iconName = SelfCareOptionIcon.assetName(for: category.name) {
+                SelfCareOptionIcon(name: iconName, size: 20)
+            } else {
                 Image(systemName: category.linkedHealthDataType?.symbol ?? "heart")
                     .accessibilityHidden(true)
-
-                Text(category.name)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if isCompleted {
-                    Image(systemName: "checkmark.circle.fill")
-                        .accessibilityHidden(true)
-                }
             }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(isCompleted ? .white : .secondary)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .padding(.horizontal, 10)
-            .contentShape(Capsule())
+
+            Text(category.name)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if isCompleted {
+                Image(systemName: "checkmark.circle.fill")
+                    .accessibilityHidden(true)
+            }
         }
-        .buttonStyle(.plain)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(isCompleted ? .white : .secondary)
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .padding(.horizontal, 10)
+        .contentShape(Capsule())
         .background(isCompleted ? SelfCareTheme.goalMet : Color.secondary.opacity(0.14), in: .capsule)
+        .gesture(
+            LongPressGesture(minimumDuration: 0.55)
+                .exclusively(before: TapGesture())
+                .onEnded { result in
+                    switch result {
+                    case .first:
+                        editingCategory = category
+                        isAddingCategory = true
+                    case .second:
+                        model.toggleCustomCategory(category.id)
+                    }
+                }
+        )
+        .accessibilityElement()
         .accessibilityLabel(category.name)
         .accessibilityValue(isCompleted ? "Complete" : "Not complete")
-        .accessibilityHint("Double-tap to toggle this category.")
+        .accessibilityHint("Double-tap to toggle. Long press to set up this category.")
+        .accessibilityAddTraits(isCompleted ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction(named: "Set up \(category.name)") {
+            editingCategory = category
+            isAddingCategory = true
+        }
     }
 
     private var checkInAction: some View {
