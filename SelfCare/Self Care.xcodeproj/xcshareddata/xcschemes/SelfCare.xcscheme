@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "2660"
+   LastUpgradeVersion = "2700"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -17,7 +17,7 @@
                BlueprintIdentifier = "T10000000000000000000001"
                BuildableName = "SelfCare.app"
                BlueprintName = "SelfCare"
-               ReferencedContainer = "container:SelfCare.xcodeproj">
+               ReferencedContainer = "container:Self Care.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -36,7 +36,7 @@
                BlueprintIdentifier = "T10000000000000000000002"
                BuildableName = "SelfCareTests.xctest"
                BlueprintName = "SelfCareTests"
-               ReferencedContainer = "container:SelfCare.xcodeproj">
+               ReferencedContainer = "container:Self Care.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -58,7 +58,7 @@
             BlueprintIdentifier = "T10000000000000000000001"
             BuildableName = "SelfCare.app"
             BlueprintName = "SelfCare"
-            ReferencedContainer = "container:SelfCare.xcodeproj">
+            ReferencedContainer = "container:Self Care.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -75,7 +75,7 @@
             BlueprintIdentifier = "T10000000000000000000001"
             BuildableName = "SelfCare.app"
             BlueprintName = "SelfCare"
-            ReferencedContainer = "container:SelfCare.xcodeproj">
+            ReferencedContainer = "container:Self Care.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
