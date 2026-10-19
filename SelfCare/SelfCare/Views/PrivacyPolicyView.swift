@@ -9,28 +9,48 @@ struct PrivacyPolicyView: View {
             }
 
             policySection(
-                title: "Data stored on your iPhone",
-                text: "Your mood check-ins, factor values, appearance choice, and app preferences are stored "
-                    + "locally on this iPhone. Self Care has no account system, advertising, analytics, or "
-                    + "developer-operated server."
+                title: "Information on your iPhone",
+                text: "Your mood check-ins, factor values, completed goals, custom categories, reminder time, "
+                    + "appearance choice, and app preferences are stored locally on this iPhone. Self Care has "
+                    + "no account system or developer-operated server."
             )
 
             policySection(
                 title: "Apple Health",
                 text: "With your permission, Self Care reads Exercise Time and Sleep Analysis and can save a "
-                    + "mood as a State of Mind entry. Apple Health permissions are optional and controlled by "
-                    + "you. Self Care does not send Health data to its developers or servers and does not use it "
-                    + "for advertising, marketing, or profiling. A CSV export may contain factor values read from "
-                    + "Apple Health and is shared only when you choose a destination."
+                    + "mood and meaningful check-in associations as a State of Mind entry. Apple Health access "
+                    + "is optional and controlled by you. Self Care does not send Health data to the developer, "
+                    + "sell it, or use it for advertising, marketing, profiling, or data mining."
+            )
+
+            policySection(
+                title: "Reminders",
+                text: "If you enable a daily reminder, the preference and time stay on this iPhone and iOS "
+                    + "schedules the notification. Self Care does not use a remote notification server."
+            )
+
+            policySection(
+                title: "No tracking",
+                text: "Self Care contains no developer-operated analytics, advertising, cross-app tracking, or "
+                    + "profiling tools and uses no third-party advertising or analytics SDKs."
             )
 
             policySection(
                 title: "Export and deletion",
                 text: "Self Care exports check-in history only when you choose Export and select a destination. "
-                    + "Reset Self Care Data removes the app’s local history and preferences and asks HealthKit to "
+                    + "That destination’s privacy practices then apply. Reset Self Care Data removes the app’s "
+                    + "local history and preferences and asks HealthKit to "
                     + "remove State of Mind entries Self Care previously saved. If HealthKit cannot remove those "
                     + "entries, Self Care keeps the local data and reports the problem. Health permissions remain "
                     + "managed by iOS."
+            )
+
+            policySection(
+                title: "Retention and backups",
+                text: "Local information remains until you delete a check-in, reset the app, or uninstall it. "
+                    + "Uninstalling does not necessarily delete State of Mind entries already in Apple Health. "
+                    + "Apple may include local app data in an Apple-managed device backup, depending on your "
+                    + "backup settings. Self Care does not receive those backups."
             )
 
             policySection(
@@ -40,7 +60,8 @@ struct PrivacyPolicyView: View {
             )
 
             Section {
-                Text("Effective October 12, 2026")
+                Link("Privacy questions: vanshea.com", destination: URL(string: "https://www.vanshea.com")!)
+                Text("Effective October 19, 2026")
                     .foregroundStyle(.secondary)
             }
         }

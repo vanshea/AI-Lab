@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10151c">
+  <meta name="description" content="Self Care is a private daily check-in for noticing how you feel and choosing what helps.">
+  <title>Self Care — A daily check-in for real life</title>
+  <style>
+    :root { color-scheme: dark; --ink:#f5f7fb; --muted:#b7c0cc; --panel:#18202b; --line:#2a3542; --accent:#8ed8be; --accent-ink:#0d2b26; --max:1160px; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font:16px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif; color:var(--ink); background:#10151c; }
+    a { color:inherit; }
+    .wrap { width:min(var(--max), calc(100% - 40px)); margin:auto; }
+    .site-header { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:18px 0; }
+    .brand { display:flex; align-items:center; gap:10px; text-decoration:none; font-weight:700; letter-spacing:.02em; }
+    .brand img { width:38px; height:38px; border-radius:11px; }
+    nav { display:flex; gap:22px; color:var(--muted); font-size:.94rem; }
+    nav a { text-decoration:none; }
+    nav a:hover, nav a:focus-visible { color:var(--ink); }
+    .hero { display:grid; grid-template-columns: .8fr 1.2fr; align-items:center; gap:44px; padding:72px 0 80px; }
+    .eyebrow { margin:0 0 12px; color:var(--accent); text-transform:uppercase; letter-spacing:.14em; font-size:.75rem; font-weight:700; }
+    h1,h2,h3 { line-height:1.1; letter-spacing:-.035em; }
+    h1 { max-width:560px; margin:0 0 22px; font-size:clamp(2.8rem,6vw,5.7rem); }
+    h2 { margin:0 0 12px; font-size:clamp(2rem,4vw,3.3rem); }
+    h3 { margin:0 0 8px; font-size:1.25rem; }
+    .lede { max-width:530px; color:var(--muted); font-size:1.16rem; }
+    .button { display:inline-block; margin-top:18px; padding:12px 18px; border-radius:999px; color:var(--accent-ink); background:var(--accent); text-decoration:none; font-weight:700; }
+    .hero-art { overflow:hidden; border:1px solid var(--line); border-radius:28px; box-shadow:0 24px 70px #0008; }
+    .hero-art img { display:block; width:100%; height:auto; }
+    .intro { max-width:760px; padding:8px 0 76px; color:var(--muted); font-size:1.1rem; }
+    .features { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; padding:20px 0 92px; }
+    .card { padding:24px; border:1px solid var(--line); border-radius:20px; background:linear-gradient(150deg,#1b2531,#151c26); }
+    .card p { margin:0; color:var(--muted); }
+    .screens-heading { margin-bottom:26px; }
+    .screens { display:grid; grid-template-columns:repeat(6,1fr); gap:14px; align-items:start; }
+    figure { margin:0; }
+    figure img { display:block; width:100%; height:auto; border-radius:16px; border:1px solid var(--line); background:#0a0d11; }
+    figcaption { margin-top:8px; color:var(--muted); font-size:.82rem; }
+    .privacy { margin:92px 0; padding:34px; border-radius:24px; background:#dff8ed; color:#14251f; }
+    .privacy p { max-width:730px; margin:0 0 12px; }
+    .privacy a { color:#14251f; font-weight:700; }
+    footer { padding:28px 0 42px; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+    @media (max-width:850px) { .hero { grid-template-columns:1fr; padding-top:42px; } .features { grid-template-columns:repeat(2,1fr); } .screens { grid-template-columns:repeat(3,1fr); } }
+    @media (max-width:560px) { .wrap { width:min(var(--max), calc(100% - 28px)); } .site-header { align-items:flex-start; } nav { gap:12px; flex-wrap:wrap; justify-content:flex-end; } .hero { gap:28px; padding-bottom:54px; } .features { grid-template-columns:1fr; padding-bottom:62px; } .screens { grid-template-columns:repeat(2,1fr); } .privacy { margin:62px 0; padding:24px; } }
+  </style>
+</head>
+<body>
+  <header class="site-header wrap">
+    <a class="brand" href="./index.html" aria-label="Self Care home"><img src="AppIcons/Self%20Care%20Icon%20V3-iOS-Default-1024x1024@2x.png" width="2048" height="2048" alt="Self Care app icon"><span>Self Care</span></a>
+    <nav aria-label="Primary navigation"><a href="#features">Features</a><a href="#screens">Screens</a><a href="../PrivacyPolicy/index.html">Privacy</a></nav>
+  </header>
+  <main>
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div><p class="eyebrow">A small daily practice</p><h1 id="hero-title">Notice how you’re doing. Choose what helps.</h1><p class="lede">Self Care is a private daily check-in for mood, movement, sleep, scrolling, and the personal categories that matter to you.</p><a class="button" href="#screens">See Self Care</a></div>
+      <div class="hero-art"><img src="Product%20Header/product-page-header.png" width="3841" height="1647" alt="Self Care illustration with the message: Log how you’re feeling and your healthy actions."></div>
+    </section>
+    <section class="intro wrap"><h2>Make space to notice.</h2><p>Self Care turns a few intentional taps into a clearer picture of your day. Check in when it works for you, look back without judgment, and build a practice around your own definition of wellbeing.</p></section>
+    <section id="features" class="wrap" aria-labelledby="features-title"><h2 id="features-title">Designed around your agency.</h2><div class="features">
+      <article class="card"><h3>Mood check-ins</h3><p>Record how you feel and add context in a simple, repeatable moment.</p></article>
+      <article class="card"><h3>Daily factors</h3><p>Notice patterns across exercise, sleep, scrolling, food, and more.</p></article>
+      <article class="card"><h3>Health when you choose</h3><p>Optionally connect Apple Health for Exercise Time and Sleep Analysis, or export State of Mind.</p></article>
+      <article class="card"><h3>Your categories</h3><p>Add the practices and priorities that make your check-in personal.</p></article>
+      <article class="card"><h3>Gentle reminders</h3><p>Set a local daily reminder that supports your rhythm without demanding attention.</p></article>
+      <article class="card"><h3>Private by design</h3><p>No account, ads, tracking, or analytics. Your entries stay on your device unless you choose to share them.</p></article>
+    </div></section>
+    <section id="screens" class="wrap" aria-labelledby="screens-title"><div class="screens-heading"><h2 id="screens-title">A calmer way to check in.</h2><p class="lede">A focused flow for the moments when you want to pause, record, and return to your day.</p></div><div class="screens">
+      <figure><img loading="lazy" decoding="async" src="Screenshots/6.9-inch/01-welcome-dark.png" width="1320" height="2868" alt="Self Care welcome screen in dark appearance"><figcaption>Start gently.</figcaption></figure>
+      <figure><img loading="lazy" decoding="async" src="Screenshots/6.9-inch/02-check-in-dark.png" width="1320" height="2868" alt="Self Care check-in screen in dark appearance"><figcaption>Check in.</figcaption></figure>
+      <figure><img loading="lazy" decoding="async" src="Screenshots/6.9-inch/03-settings-dark.png" width="1320" height="2868" alt="Self Care settings screen in dark appearance"><figcaption>Make it yours.</figcaption></figure>
+      <figure><img loading="lazy" decoding="async" src="Screenshots/6.9-inch/04-settings-light.png" width="1320" height="2868" alt="Self Care settings screen in light appearance"><figcaption>Choose your look.</figcaption></figure>
+      <figure><img loading="lazy" decoding="async" src="Screenshots/6.9-inch/05-check-in-light.png" width="1320" height="2868" alt="Self Care check-in screen in light appearance"><figcaption>Notice patterns.</figcaption></figure>
+      <figure><img loading="lazy" decoding="async" src="Screenshots/6.9-inch/06-privacy-light.png" width="1320" height="2868" alt="Self Care privacy screen in light appearance"><figcaption>Stay in control.</figcaption></figure>
+    </div></section>
+    <section class="privacy wrap"><h2>Wellbeing is personal.</h2><p>Self Care is a reflection tool, not medical care. Read the full privacy policy to understand what the app stores locally and what happens when you connect Apple Health.</p><a href="../PrivacyPolicy/index.html">Read the privacy policy →</a></section>
+  </main>
+  <footer><div class="wrap">Self Care · A private daily check-in for real life</div></footer>
+</body>
+</html>
